@@ -1,0 +1,2244 @@
+/* ==========================================================================
+   Design System & Tokens - Branch TikTok The Idol 2026
+   Primary Font: 'Kanit', sans-serif
+   ========================================================================== */
+:root {
+  --font-family: 'Kanit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Brand Color Palette */
+  --color-primary: #1255ea;
+  --color-primary-dark: #0a3bb3;
+  --color-primary-light: #3d7bf8;
+  --color-accent: #ff6b00;
+  --color-accent-light: #ff9100;
+  --color-accent-dark: #d94800;
+
+  /* Neutral & Dark */
+  --color-dark: #0f172a;
+  --color-gray-900: #1e293b;
+  --color-gray-700: #334155;
+  --color-gray-500: #64748b;
+  --color-gray-300: #cbd5e1;
+  --color-gray-100: #f1f5f9;
+  --color-white: #ffffff;
+
+  /* Functional Colors */
+  --color-success: #10b981;
+  --color-error: #ef4444;
+  --color-error-bg: #fef2f2;
+
+  /* Gradients */
+  --grad-primary: linear-gradient(135deg, #1255ea 0%, #2979ff 100%);
+  --grad-accent: linear-gradient(135deg, #ff5100 0%, #ff8c00 100%);
+  --grad-btn: linear-gradient(135deg, #1255ea 0%, #0d44c4 50%, #ff6b00 120%);
+  --grad-gold: linear-gradient(135deg, #ff8c00 0%, #ffd600 100%);
+
+  /* Shadows & Glass */
+  --glass-bg: rgba(255, 255, 255, 0.88);
+  --glass-border: rgba(255, 255, 255, 0.95);
+  --glass-shadow: 0 16px 40px -10px rgba(18, 85, 234, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.6);
+  --btn-shadow: 0 10px 25px -4px rgba(18, 85, 234, 0.45);
+  --btn-shadow-active: 0 4px 12px rgba(18, 85, 234, 0.3);
+
+  /* Dimensions & Radius */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --radius-xl: 32px;
+  --radius-pill: 9999px;
+  --app-max-width: 430px;
+}
+
+/* ==========================================================================
+   Base & Resets
+   ========================================================================== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  font-family: var(--font-family);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--color-gray-900);
+  background-color: #0b1120;
+  overflow: hidden;
+}
+
+/* Desktop Ambient Blurred Backdrop */
+.desktop-bg-blur {
+  position: fixed;
+  inset: -30px;
+  background: url('../images/background.jpg') center center / cover no-repeat;
+  filter: blur(40px) brightness(0.65);
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   Mobile Device Frame (App Container)
+   ========================================================================== */
+.mobile-device-frame {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: var(--app-max-width);
+  height: 100%;
+  max-height: 100dvh;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  background: url('../images/background.jpg') no-repeat center bottom;
+  background-size: cover;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7),
+    0 0 0 1px rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+  user-select: none;
+}
+
+@media (min-width: 481px) {
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 0;
+  }
+
+  .mobile-device-frame {
+    height: 92vh;
+    max-height: 880px;
+    border-radius: 44px;
+    border: 8px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6),
+      0 0 0 1px rgba(255, 255, 255, 0.3),
+      inset 0 0 0 2px rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* ==========================================================================
+   Scrollable App Body
+   ========================================================================== */
+.app-scroll-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 22px 30px;
+  padding-top: max(24px, env(safe-area-inset-top, 24px));
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE/Edge */
+}
+
+.app-scroll-container::-webkit-scrollbar {
+  display: none;
+  /* Chrome, Safari, Opera */
+}
+
+/* ==========================================================================
+   Hero Section & Header Image (Center Stage)
+   ========================================================================== */
+.hero-section {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 0 18px;
+  text-align: center;
+}
+
+/* Glowing Neon Orb behind Header Logo */
+.glow-orb {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 240px;
+  height: 180px;
+  background: radial-gradient(circle, rgba(18, 85, 234, 0.32) 0%, rgba(255, 107, 0, 0.22) 50%, transparent 75%);
+  filter: blur(28px);
+  pointer-events: none;
+  z-index: 0;
+  animation: pulseGlow 4s ease-in-out infinite alternate;
+}
+
+@keyframes pulseGlow {
+  0% {
+    transform: translate(-50%, -50%) scale(0.9);
+    opacity: 0.7;
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(1.15);
+    opacity: 1;
+  }
+}
+
+.header-image-wrapper {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 14px 28px rgba(18, 85, 234, 0.35));
+}
+
+.header-logo {
+  width: 100%;
+  height: auto;
+  max-height: 280px;
+  object-fit: contain;
+  transition: transform 0.3s ease;
+}
+
+/* Subtle Floating Animation */
+.animate-float {
+  animation: logoFloat 3.8s ease-in-out infinite alternate;
+}
+
+@keyframes logoFloat {
+  0% {
+    transform: translateY(0px) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-7px) rotate(0.6deg);
+  }
+
+  100% {
+    transform: translateY(-2px) rotate(-0.4deg);
+  }
+}
+
+/* Event Tag */
+.event-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px;
+  margin-top: 10px;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(18, 85, 234, 0.2);
+  color: var(--color-primary-dark);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  box-shadow: 0 4px 12px rgba(18, 85, 234, 0.1);
+  z-index: 2;
+}
+
+.tag-dot {
+  width: 7px;
+  height: 7px;
+  background-color: var(--color-accent);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--color-accent);
+  animation: blinkDot 1.6s infinite;
+}
+
+@keyframes blinkDot {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.4;
+    transform: scale(0.8);
+  }
+}
+
+/* ==========================================================================
+   Registration Card (Glassmorphic)
+   ========================================================================== */
+.registration-section {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  margin-top: 2px;
+}
+
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: var(--radius-lg);
+  border: 1.5px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  padding: 24px 20px 20px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.form-title {
+  font-size: 1.55rem;
+  font-weight: 600;
+  color: var(--color-primary-dark);
+  line-height: 1.3;
+  letter-spacing: -0.3px;
+  margin-bottom: 4px;
+}
+
+.form-subtitle {
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: var(--color-gray-500);
+}
+
+.realtime-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #047857;
+  padding: 4px 14px;
+  border-radius: var(--radius-full);
+  font-size: 0.82rem;
+  font-weight: 500;
+  margin-top: 10px;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.1);
+  transition: all 0.3s ease;
+}
+
+.realtime-live-badge strong {
+  font-weight: 600;
+  color: #065f46;
+  font-size: 0.92rem;
+}
+
+.live-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  animation: pulseLiveDot 1.8s infinite;
+}
+
+@keyframes pulseLiveDot {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+
+  70% {
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+/* ==========================================================================
+   Form Controls & Input
+   ========================================================================== */
+.reg-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-gray-700);
+}
+
+.label-badge {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--color-primary);
+  background: rgba(18, 85, 234, 0.08);
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--color-gray-300);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.input-wrapper:hover {
+  border-color: #94a3b8;
+}
+
+.input-wrapper:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px rgba(18, 85, 234, 0.18),
+    0 4px 14px rgba(18, 85, 234, 0.1);
+  background: #ffffff;
+}
+
+.input-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 14px;
+  color: var(--color-gray-500);
+  transition: color 0.25s ease;
+}
+
+.input-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.input-wrapper:focus-within .input-icon {
+  color: var(--color-primary);
+}
+
+.text-input {
+  flex: 1;
+  width: 100%;
+  height: 52px;
+  padding: 0 12px;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: var(--font-family);
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: var(--color-dark);
+  letter-spacing: 0.5px;
+}
+
+.text-input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+  font-size: 14px;
+}
+
+.btn-clear {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px 14px;
+  color: var(--color-gray-500);
+  transition: color 0.2s;
+}
+
+.btn-clear:hover {
+  color: var(--color-dark);
+}
+
+.btn-clear svg {
+  width: 18px;
+  height: 18px;
+}
+
+.btn-clear.is-visible {
+  display: flex;
+}
+
+/* Input Error State */
+.form-group.has-error .input-wrapper {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.18);
+  animation: shake 0.4s ease;
+}
+
+.form-group.has-error .input-icon {
+  color: var(--color-error);
+}
+
+@keyframes shake {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  20%,
+  60% {
+    transform: translateX(-5px);
+  }
+
+  40%,
+  80% {
+    transform: translateX(5px);
+  }
+}
+
+.feedback-msg {
+  display: none;
+  font-size: 0.84rem;
+  font-weight: 500;
+  padding: 4px 6px 0;
+  animation: fadeIn 0.25s ease;
+}
+
+.form-group.has-error .feedback-msg {
+  display: block;
+  color: var(--color-error);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Quick Demo Chips */
+.quick-chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 0 2px;
+}
+
+.chip-label {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--color-gray-500);
+}
+
+.chip-btn {
+  background: rgba(18, 85, 234, 0.07);
+  border: 1px solid rgba(18, 85, 234, 0.16);
+  color: var(--color-primary-dark);
+  font-family: var(--font-family);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chip-btn:hover {
+  background: var(--color-primary);
+  color: var(--color-white);
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   Submit Button
+   ========================================================================== */
+.btn-submit {
+  position: relative;
+  width: 100%;
+  height: 54px;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: none;
+  outline: none;
+  border-radius: var(--radius-md);
+  background: var(--grad-btn);
+  background-size: 200% auto;
+  color: var(--color-white);
+  font-family: var(--font-family);
+  font-size: 1.18rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  box-shadow: var(--btn-shadow);
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Light sweep reflection on button */
+.btn-submit::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -60%;
+  width: 45%;
+  height: 200%;
+  background: linear-gradient(60deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.35) 50%,
+      transparent 100%);
+  transform: rotate(25deg);
+  animation: shineSweep 4s infinite ease-in-out;
+}
+
+@keyframes shineSweep {
+
+  0%,
+  65% {
+    left: -60%;
+  }
+
+  100% {
+    left: 160%;
+  }
+}
+
+.btn-submit:hover {
+  background-position: right center;
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px -4px rgba(255, 107, 0, 0.4),
+    0 8px 16px -2px rgba(18, 85, 234, 0.35);
+}
+
+.btn-submit:active {
+  transform: translateY(1px);
+  box-shadow: var(--btn-shadow-active);
+}
+
+.btn-icon svg {
+  width: 20px;
+  height: 20px;
+  transition: transform 0.2s ease;
+}
+
+.btn-submit:hover .btn-icon svg {
+  transform: translateX(4px);
+}
+
+/* Loading State on Button */
+.btn-spinner {
+  display: none;
+  width: 22px;
+  height: 22px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.btn-submit.is-loading {
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+.btn-submit.is-loading .btn-text,
+.btn-submit.is-loading .btn-icon {
+  display: none;
+}
+
+.btn-submit.is-loading .btn-spinner {
+  display: block;
+}
+
+/* Card Footer */
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px dashed rgba(18, 85, 234, 0.15);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-gray-500);
+}
+
+.secure-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--color-primary);
+}
+
+/* Bottom Spacer to accommodate gift boxes at bottom of background */
+.bottom-spacer {
+  height: 80px;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   Success Modal (Digital Pass)
+   ========================================================================== */
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  background: rgba(10, 20, 45, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.modal-backdrop.is-active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-card {
+  position: relative;
+  width: 100%;
+  max-width: 350px;
+  background: #ffffff;
+  border-radius: 28px;
+  padding: 28px 22px 22px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  transform: scale(0.85) translateY(20px);
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.modal-backdrop.is-active .modal-card {
+  transform: scale(1) translateY(0);
+}
+
+.modal-badge-wrapper {
+  position: absolute;
+  top: -32px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.modal-badge {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  box-shadow: 0 10px 24px rgba(16, 185, 129, 0.4),
+    0 0 0 6px #ffffff;
+}
+
+.modal-badge svg {
+  width: 32px;
+  height: 32px;
+}
+
+.modal-title {
+  font-size: 1.45rem;
+  font-weight: 600;
+  color: var(--color-gray-900);
+  margin-top: 18px;
+  margin-bottom: 4px;
+}
+
+.modal-subtitle {
+  font-size: 0.88rem;
+  color: var(--color-gray-500);
+  margin-bottom: 20px;
+}
+
+/* Digital Pass inside Modal */
+.pass-card {
+  background: linear-gradient(145deg, #f8faff 0%, #eef3ff 100%);
+  border: 1.5px solid #dbeafe;
+  border-radius: var(--radius-md);
+  padding: 16px;
+  text-align: left;
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.pass-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 5px;
+  height: 100%;
+  background: var(--grad-primary);
+}
+
+.pass-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed #cbd5e1;
+}
+
+.pass-event {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-primary-dark);
+  letter-spacing: 0.5px;
+}
+
+.pass-status {
+  font-size: 0.68rem;
+  font-weight: 600;
+  background: rgba(16, 185, 129, 0.15);
+  color: #059669;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.pass-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.pass-field {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pass-label {
+  font-size: 0.82rem;
+  color: var(--color-gray-500);
+}
+
+.pass-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-gray-900);
+}
+
+.pass-ticket-barcode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding-top: 10px;
+  border-top: 1px dashed #cbd5e1;
+}
+
+.barcode-lines {
+  width: 80%;
+  height: 28px;
+  background: repeating-linear-gradient(90deg,
+      #1e293b,
+      #1e293b 2px,
+      transparent 2px,
+      transparent 4px,
+      #1e293b 4px,
+      #1e293b 7px,
+      transparent 7px,
+      transparent 9px);
+  opacity: 0.85;
+}
+
+.barcode-code {
+  font-size: 0.72rem;
+  letter-spacing: 2px;
+  font-weight: 600;
+  color: var(--color-gray-500);
+}
+
+.btn-modal-close {
+  width: 100%;
+  height: 48px;
+  background: var(--color-primary);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-family);
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 6px 18px rgba(18, 85, 234, 0.3);
+}
+
+.btn-modal-close:hover {
+  background: var(--color-primary-dark);
+  transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   Reward & Employee Details Page View
+   ========================================================================== */
+.reward-page-view {
+  width: 100%;
+  animation: fadeInSlideUp 0.45s ease-out;
+}
+
+@keyframes fadeInSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.reward-header {
+  text-align: center;
+  padding: 30px 10px 18px;
+}
+
+.reward-logo-wrapper {
+  max-width: 240px;
+  margin: 0 auto 12px;
+  filter: drop-shadow(0 10px 20px rgba(18, 85, 234, 0.3));
+}
+
+.reward-logo {
+  width: 100%;
+  height: auto;
+  max-height: 400px;
+  object-fit: contain;
+}
+
+.reward-event-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 14px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(18, 85, 234, 0.2);
+  border-radius: var(--radius-full);
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--color-primary-dark);
+  box-shadow: 0 4px 12px rgba(0, 45, 114, 0.08);
+  margin-bottom: 12px;
+}
+
+.reward-hero-title {
+  font-size: 1.45rem;
+  font-weight: 600;
+  color: #ffffff;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
+  line-height: 1.3;
+  margin-bottom: 4px;
+}
+
+.reward-hero-sub {
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
+}
+
+/* Card Section Labels */
+.card-section-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed rgba(18, 85, 234, 0.2);
+  margin-bottom: 16px;
+}
+
+.card-section-label svg {
+  width: 17px;
+  height: 17px;
+}
+
+.card-section-label.label-accent {
+  color: var(--color-accent);
+  border-color: rgba(255, 107, 0, 0.25);
+}
+
+/* TOP: Employee Profile Card */
+.emp-info-card {
+  margin-bottom: 18px;
+}
+
+.emp-profile-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 0;
+}
+
+.emp-avatar-circle {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1255ea 0%, #002d72 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  font-weight: 600;
+  box-shadow: 0 6px 16px rgba(18, 85, 234, 0.3);
+  flex-shrink: 0;
+}
+
+.emp-main-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.emp-id-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.badge-empid {
+  font-size: 0.84rem;
+  font-weight: 600;
+  background: rgba(18, 85, 234, 0.12);
+  color: var(--color-primary-dark);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.badge-reg-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #059669;
+  background: rgba(16, 185, 129, 0.14);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.dot-live-status {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+}
+
+.emp-fullname {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--color-gray-900);
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.emp-job-title {
+  font-size: 0.86rem;
+  color: var(--color-gray-600);
+  font-weight: 500;
+}
+
+/* Info Grid */
+.emp-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.info-cell {
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.info-cell.full-span {
+  grid-column: span 2;
+}
+
+.info-cell-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-gray-500);
+}
+
+.info-cell-value {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-gray-900);
+}
+
+.badge-group-chip {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  font-size: 0.84rem;
+  font-weight: 600;
+  align-self: flex-start;
+}
+
+.badge-group-BBD {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
+.badge-group-AL {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.badge-group-MDS {
+  background: #e0e7ff;
+  color: #3730a3;
+  border: 1px solid #c7d2fe;
+}
+
+.badge-group-T-Con {
+  background: #ffedd5;
+  color: #9a3412;
+  border: 1px solid #fed7aa;
+}
+
+.badge-group-default {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+/* Digital Barcode inside Profile */
+.digital-ticket-box {
+  background: #ffffff;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  text-align: center;
+}
+
+.ticket-barcode-lines {
+  width: 90%;
+  height: 28px;
+  margin: 0 auto 6px;
+  background: repeating-linear-gradient(90deg,
+      #0f172a, #0f172a 2px,
+      transparent 2px, transparent 4px,
+      #0f172a 4px, #0f172a 7px,
+      transparent 7px, transparent 9px);
+  opacity: 0.85;
+}
+
+.ticket-code-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.76rem;
+  color: var(--color-gray-500);
+}
+
+.ticket-code-val {
+  font-weight: 600;
+  letter-spacing: 2px;
+  color: var(--color-primary-dark);
+}
+
+/* BOTTOM: Rewards Card */
+.rewards-section-card {
+  margin-bottom: 22px;
+  background: #ffffff !important;
+  border: 1.5px solid #e2e8f0 !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.card-section-label.label-accent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.label-left-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.live-realtime-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 999px;
+  letter-spacing: 0.5px;
+}
+
+.live-realtime-pill .live-pulse-dot {
+  width: 7px;
+  height: 7px;
+  background: #10b981;
+  border-radius: 50%;
+  box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
+  animation: pulseGreen 1.6s infinite;
+}
+
+@keyframes pulseGreen {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+  }
+
+  70% {
+    box-shadow: 0 0 0 7px rgba(16, 185, 129, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+.lucky-draw-result-container {
+  margin-top: 8px;
+}
+
+/* --- STATE 1: WAITING FOR LUCKY DRAW --- */
+.waiting-prize-card {
+  text-align: center;
+  padding: 24px 16px 20px;
+  background: #ffffff !important;
+  border: 1.5px dashed rgba(203, 213, 225, 0.9);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.waiting-radar-wrap {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.radar-ping {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: rgba(18, 85, 234, 0.15);
+  animation: radarPing 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes radarPing {
+
+  75%,
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+.waiting-icon-circle {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 2px solid #bfdbfe;
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+  box-shadow: 0 4px 12px rgba(18, 85, 234, 0.12);
+}
+
+.waiting-icon-circle svg {
+  width: 24px;
+  height: 24px;
+  animation: clockRotate 10s linear infinite;
+}
+
+@keyframes clockRotate {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.waiting-headline {
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: var(--color-gray-800);
+  margin: 0;
+}
+
+.waiting-desc {
+  font-size: 0.8rem;
+  color: var(--color-gray-500);
+  max-width: 320px;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.waiting-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  color: #475569;
+  font-weight: 500;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.waiting-status-chip .live-pulse-dot {
+  width: 6px;
+  height: 6px;
+  background: #0284c7;
+  border-radius: 50%;
+  animation: pulseBlue 1.6s infinite;
+}
+
+@keyframes pulseBlue {
+  0% {
+    box-shadow: 0 0 0 0 rgba(2, 132, 199, 0.6);
+  }
+
+  70% {
+    box-shadow: 0 0 0 6px rgba(2, 132, 199, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(2, 132, 199, 0);
+  }
+}
+
+/* --- STATE 2: WON A PRIZE CARD (ขอแสดงความยินดี) --- */
+.won-prize-card {
+  background: #ffffff;
+  /* ปรับ background เป็นสีขาวตามที่ขอ */
+  border: 1.5px solid #e2e8f0;
+  border-radius: var(--radius-lg);
+  padding: 20px 16px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.won-prize-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+  border-bottom: 1px dashed #e2e8f0;
+  padding-bottom: 12px;
+}
+
+.won-sparkle-badge {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fee2e2;
+  padding: 3px 10px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.won-time-tag {
+  font-size: 0.74rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.won-prize-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  background: #ffffff;
+  /* background สีขาว */
+}
+
+/* รูปภาพรางวัล แสดงผลรูป 80% */
+.prize-photo-frame {
+  width: 100%;
+  background: #ffffff;
+  /* background สีขาว */
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 8px 0;
+}
+
+.prize-photo-img {
+  width: 80%;
+  /* ปรับการแสดงผลรูปรางวัลให้แสดงผลรูป 80% */
+  max-width: 320px;
+  max-height: 240px;
+  object-fit: contain;
+  margin: 0 auto;
+  display: block;
+  transition: transform 0.25s ease;
+}
+
+.prize-photo-img:hover {
+  transform: scale(1.03);
+}
+
+.prize-photo-fallback {
+  font-size: 4rem;
+  line-height: 1;
+  padding: 16px 0;
+}
+
+.prize-details-wrap {
+  width: 100%;
+  text-align: center;
+}
+
+.prize-type-label {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #dc2626;
+  margin-bottom: 4px;
+}
+
+.prize-display-name {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.35;
+  margin: 0 0 4px;
+  word-break: break-word;
+}
+
+.prize-display-sub {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* --- Executive / Prize Owner Card in index.html --- */
+.prize-photo-frame.is-owner-frame {
+  padding: 6px 0 2px;
+  background: transparent;
+}
+
+.prize-photo-img.is-owner-img {
+  width: auto;
+  max-width: 240px;
+  max-height: 240px;
+  height: auto;
+  object-fit: contain;
+  margin: 0 auto;
+  filter: drop-shadow(0 10px 20px rgba(0, 45, 98, 0.12));
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.prize-photo-img.is-owner-img:hover {
+  transform: scale(1.04);
+}
+
+.prize-photo-fallback.is-owner-fallback {
+  font-size: 4rem;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 6px auto;
+  border: 3px solid #bfdbfe;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.15);
+}
+
+.prize-owner-info-card {
+  margin-top: 10px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.prize-owner-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.prize-owner-icon {
+  width: 13px;
+  height: 13px;
+  color: #0284c7;
+}
+
+.prize-owner-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.35;
+  margin-top: 1px;
+}
+
+.prize-owner-position-badge {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #1d4ed8;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  padding: 2px 12px;
+  border-radius: 9999px;
+  line-height: 1.35;
+  margin-top: 2px;
+}
+
+/* ส่วนปุ่ม "ยืนยันรับรางวัลแล้ว" */
+.won-prize-action-area {
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1px dashed #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.claim-status-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  background: #f8fafc;
+}
+
+.claim-status-indicator.is-claimed {
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fee2e2;
+}
+
+.claim-status-indicator.is-pending {
+  color: #475569;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+
+.claim-status-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.claim-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #dc2626;
+}
+
+.claim-status-dot.pending {
+  background: #94a3b8;
+}
+
+/* Button "ยืนยันรับรางวัลแล้ว" เป็นสีพื้นสีแดง */
+.btn-claim-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-family);
+  font-size: 0.96rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none;
+  width: 100%;
+}
+
+.btn-claim-action.is-pending {
+  background: #dc2626;
+  /* สีพื้นสีแดง */
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35);
+}
+
+.btn-claim-action.is-pending:hover {
+  background: #b91c1c;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(220, 38, 38, 0.45);
+}
+
+.btn-claim-action.is-pending:active {
+  transform: translateY(0);
+}
+
+.btn-claim-action.is-claimed,
+.btn-claim-action:disabled {
+  background: #94a3b8 !important;
+  /* สีเทาเมื่อยืนยันรับรางวัลแล้ว */
+  color: #ffffff !important;
+  border: none !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+  box-shadow: none !important;
+  transform: none !important;
+  opacity: 0.95;
+}
+
+.btn-claim-action svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Officer claim warning notice (แสดงเฉพาะก่อนกดยืนยัน) */
+.claim-officer-notice {
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #dc2626;
+  margin-top: 4px;
+  letter-spacing: 0.2px;
+  line-height: 1.4;
+}
+
+/* วันที่และเวลาที่รับรางวัล (แสดงเมื่อกดยืนยันแล้ว) */
+.claimed-datetime-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #475569;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  margin-top: 4px;
+  text-align: center;
+}
+
+.claimed-datetime-badge svg {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.claimed-datetime-badge strong {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+/* --- STATE 3: NOT WON PRIZE CARD (เสียใจด้วย คุณไม่ได้รับรางวัล) --- */
+.not-won-prize-card {
+  text-align: center;
+  padding: 26px 18px 22px;
+  background: #ffffff !important;
+  border: 1.5px solid #e2e8f0;
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
+  animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.not-won-icon-circle {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.not-won-icon-circle svg {
+  width: 26px;
+  height: 26px;
+}
+
+.not-won-headline {
+  font-size: 1.12rem;
+  font-weight: 600;
+  color: #334155;
+  margin: 0;
+}
+
+.not-won-desc {
+  font-size: 0.82rem;
+  color: #64748b;
+  max-width: 320px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.not-won-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.not-won-dot {
+  width: 7px;
+  height: 7px;
+  background: #94a3b8;
+  border-radius: 50%;
+}
+
+/* Bottom Action Buttons (กลับสู่หน้าหลัก & Logout ในแถวเดียวกัน) */
+.reward-bottom-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  padding: 0 4px 10px;
+  width: 100%;
+}
+
+.btn-return-home,
+.btn-logout {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-family);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+}
+
+.btn-return-home {
+  background: #ffffff;
+  border: 1.5px solid var(--color-border);
+  color: var(--color-gray-700);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.btn-return-home:hover {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(18, 85, 234, 0.25);
+}
+
+.btn-logout {
+  background: #ffffff;
+  border: 1.5px solid #fee2e2;
+  color: #dc2626;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.05);
+}
+
+.btn-logout:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(220, 38, 38, 0.25);
+}
+
+.btn-return-home svg,
+.btn-logout svg {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+}
+
+/* --- CLAIM CONFIRMATION LIGHTBOX MODAL --- */
+.claim-confirm-modal-card {
+  max-width: 380px;
+  padding: 32px 22px 22px;
+}
+
+.modal-badge.modal-badge-claim {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  box-shadow: 0 10px 24px rgba(220, 38, 38, 0.4), 0 0 0 6px #ffffff;
+  color: #ffffff;
+}
+
+.claim-details-box {
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.claim-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.claim-detail-label {
+  font-size: 0.82rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.claim-detail-val {
+  font-size: 0.94rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.claim-detail-row.full-prize-row {
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.claim-detail-row.full-prize-row .claim-detail-label {
+  align-self: flex-start;
+  font-size: 0.82rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Modal Prize Photo Frame */
+.claim-modal-prize-frame {
+  width: 100%;
+  height: 140px;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.claim-modal-prize-img {
+  max-width: 85%;
+  max-height: 85%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+.claim-modal-prize-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.8rem;
+  background: #f8fafc;
+  color: #94a3b8;
+}
+
+.claim-detail-prize {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #dc2626;
+  line-height: 1.4;
+  text-align: center;
+  width: 100%;
+  word-break: break-word;
+}
+
+.claim-modal-owner-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+.claim-modal-owner-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.claim-modal-owner-pos {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #1d4ed8;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  padding: 1px 8px;
+  border-radius: 9999px;
+  display: inline-block;
+}
+
+.claim-officer-alert {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #fef2f2;
+  border: 1px solid #fee2e2;
+  color: #dc2626;
+  font-size: 0.84rem;
+  font-weight: 600;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.claim-officer-alert svg {
+  flex-shrink: 0;
+  color: #dc2626;
+}
+
+.claim-modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.btn-claim-modal-confirm {
+  width: 100%;
+  padding: 12px 18px;
+  background: #dc2626;
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-family);
+  font-size: 0.98rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35);
+}
+
+.btn-claim-modal-confirm:hover {
+  background: #b91c1c;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(220, 38, 38, 0.45);
+}
+
+.btn-claim-modal-confirm:disabled {
+  background: #94a3b8 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+  pointer-events: none !important;
+}
+
+.btn-claim-modal-cancel {
+  width: 100%;
+  padding: 10px 18px;
+  background: #ffffff;
+  color: #64748b;
+  border: 1.5px solid #e2e8f0;
+  border-radius: var(--radius-md);
+  font-family: var(--font-family);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-claim-modal-cancel:hover {
+  background: #f1f5f9;
+  color: #334155;
+  border-color: #cbd5e1;
+}
+
+/* ========================================================================== */
+/* MEDAL SECTION CARD (Influencer Medal)                                     */
+/* ========================================================================== */
+.medal-section-card {
+  margin-bottom: 22px;
+  background: #ffffff !important;
+  border: 1.5px solid #fde68a !important;
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.08) !important;
+  border-radius: var(--radius-lg);
+  padding: 24px 20px 22px;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.card-section-label.label-gold {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  color: #b45309;
+}
+
+.card-section-label.label-gold svg {
+  color: #f59e0b;
+}
+
+.medal-tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  color: #b45309;
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  letter-spacing: 0.3px;
+}
+
+.medal-card-body {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 18px 14px;
+  background: linear-gradient(180deg, #fffbeb 0%, #ffffff 100%);
+  border: 1px solid #fef3c7;
+  border-radius: var(--radius-md);
+}
+
+.medal-img-wrapper {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  margin: 6px auto 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.medal-hero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 18px rgba(245, 158, 11, 0.28));
+  transition: transform 0.3s ease;
+}
+
+.medal-hero-img.animate-float {
+  animation: medalFloat 3.5s ease-in-out infinite;
+}
+
+@keyframes medalFloat {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.medal-hero-img.pulse-glow {
+  animation: medalPulse 2.4s infinite;
+}
+
+@keyframes medalPulse {
+
+  0%,
+  100% {
+    filter: drop-shadow(0 6px 14px rgba(245, 158, 11, 0.25));
+    transform: scale(1);
+  }
+
+  50% {
+    filter: drop-shadow(0 12px 28px rgba(245, 158, 11, 0.5));
+    transform: scale(1.05);
+  }
+}
+
+.medal-name-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #78350f;
+  margin: 0 0 8px;
+  letter-spacing: -0.2px;
+}
+
+.medal-desc {
+  font-size: 0.88rem;
+  color: #64748b;
+  margin: 0 0 16px;
+  max-width: 320px;
+  line-height: 1.45;
+}
+
+/* Button to claim medal */
+.btn-claim-medal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 999px;
+  padding: 12px 32px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(217, 119, 6, 0.35);
+  transition: all 0.25s ease;
+  font-family: var(--font-family);
+}
+
+.btn-claim-medal:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(217, 119, 6, 0.45);
+  background: linear-gradient(135deg, #fbbf24 0%, #b45309 100%);
+}
+
+.btn-claim-medal:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-claim-medal:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.btn-claim-medal svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Claimed State Styles */
+.medal-status-pill.claimed {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+  border-radius: 999px;
+  padding: 6px 16px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  margin-top: 4px;
+  margin-bottom: 6px;
+}
+
+.medal-time-stamp {
+  font-size: 0.82rem;
+  color: #64748b;
+  margin-top: 4px;
+}

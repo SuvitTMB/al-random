@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบลงทะเบียนและแสดงผลลุ้นรางวัล | AL Drive Forum Special</title>
+
+  <!-- Google Fonts: Kanit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap"
+    rel="stylesheet">
+
+  <!-- Canvas Confetti for Sparkles -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <!-- Firebase Compat SDK v8 -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+  <!-- Firebase Configuration & Paths -->
+  <script src="./js/firebase-config.js"></script>
+
+  <!-- Random Screen Stylesheet -->
+  <link rel="stylesheet" href="./css/random.css">
+</head>
+
+<body>
+  <!-- Ambient Spotlight Glow Effect -->
+  <div class="ambient-glow" aria-hidden="true"></div>
+
+  <!-- Main Screen Layout -->
+  <div class="random-screen-wrapper">
+
+    <!-- Floating Audio Unlock Notification Banner (แจ้งเตือนให้คลิก 1 ครั้งเพื่อเปิดระบบเสียงเอฟเฟกต์การสุ่มและเสียงพลุ) -->
+    <div id="audioUnlockBanner" class="audio-unlock-floating-banner" style="display: none;" onclick="window.unlockOrToggleAudio()">
+      <span class="audio-banner-pulse">🔊</span>
+      <span class="audio-banner-text">คลิกที่หน้าจอนี้ 1 ครั้ง เพื่อเปิดระบบเสียงเอฟเฟกต์การสุ่มและเสียงพลุ</span>
+      <button type="button" class="btn-audio-banner-action">เปิดเสียงทันที</button>
+    </div>
+
+    <!-- Top Bar: Event Badge, Logo & Utilities -->
+    <header class="random-top-bar">
+      <!-- Top Bar Left: Back to Admin & Remote Controller -->
+      <div class="top-bar-left">
+        <a href="admin.html" class="btn-back-to-admin" id="btnBackToAdmin"
+          title="กลับไปหน้าระบบจัดการข้อมูล (admin.html)">
+          <span class="back-arrow">‹</span>
+          <span>กลับไปหน้า Admin</span>
+        </a>
+        <a href="remote-reward.html" class="btn-back-to-admin" id="btnGoToRemoteReward"
+          target="_blank" title="เปิดหน้ารีโมตควบคุมการสุ่มรางวัล (remote-reward.html)" style="margin-left: 8px;">
+          <span>🎛️</span>
+          <span>รีโมตควบคุม</span>
+        </a>
+      </div>
+
+      <!-- Center Logo (Social Media Club) & Event Badge -->
+      <div class="random-logo-header"></div>
+
+      <!-- Right Utility Bar -->
+      <div class="top-bar-right">
+        <div class="room-pin-badge" id="randomRoomPinBadge" title="รหัสห้องเชื่อมต่อกับรีโมต (คลิกเพื่อเปลี่ยนรหัส)" onclick="window.promptChangeRoomPin()">
+          <span>🔑 ห้อง:</span>
+          <strong id="randomRoomPinText">AL2026</strong>
+        </div>
+
+        <div class="status-pill" id="connStatusIndicator" title="สถานะการเชื่อมต่อฐานข้อมูล">
+          <span class="status-pulse-dot"></span>
+          <span class="status-text">Real-time Live</span>
+        </div>
+
+        <button type="button" class="btn-screen-tool" id="btnToggleAudio" title="เสียงเอฟเฟกต์การสุ่มและเสียงพุ (คลิกเพื่อเปิด/ทดสอบเสียง)" onclick="window.unlockOrToggleAudio()">
+          <span id="audioIcon">🔊</span>
+          <span id="audioText">เสียงเปิด</span>
+        </button>
+
+        <button type="button" class="btn-screen-tool" id="btnToggleFullscreen" title="เปิด/ปิดการแสดงผลเต็มหน้าจอ">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3">
+            </path>
+          </svg>
+          <span>เต็มจอ</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="random-main-content">
+
+      <!-- ================================================================= -->
+      <!-- VIEW 1: REGISTRATION LIVE (หน้าลงทะเบียน)                         -->
+      <!-- ================================================================= -->
+      <div id="viewRegistration" class="random-view-panel active">
+        <!-- Main Content: Split 40% (Logo + QR) & 60% (Heading + Group Choice) -->
+        <div class="random-split-layout">
+
+          <!-- ฝั่งซ้าย 40%: แสดงรูปภาพ logo และ QR code ใต้ logo (ไม่มีกล่องรอบ) -->
+          <aside class="screen-col-40">
+            <div class="brand-hero-card">
+              <!-- โลโก้ -->
+              <div class="brand-hero-logo-wrap">
+                <img src="./images/logo@.png" alt="Logo" class="brand-hero-logo">
+              </div>
+
+              <!-- QR Code ใต้ logo (ไม่มีกล่องรอบ) -->
+              <div class="hero-qr-container" id="qrFrameView1" title="คลิกเพื่อขยายภาพ QR Code ให้ใหญ่ขึ้น">
+                <img src="./images/qr-influ.png" alt="QR Code ลงทะเบียน" class="hero-qr-image" id="qrImageView1">
+                <div class="hero-qr-caption">
+                  <span class="hero-qr-tag">📱 สแกน QR Code เพื่อลุ้นรางวัลที่นี่</span>
+                </div>
+              </div>
+
+              <!-- สถิติ: จำนวนผู้มีสิทธิ์ลุ้นรางวัล (ไม่นับรวมผู้ที่ได้รางวัลแล้ว) และ จำนวนรางวัลคงเหลือ -->
+              <div class="brand-live-stats-box">
+                <div class="stat-live-item">
+                  <span class="stat-live-num" id="statRegisteredCount">0</span>
+                  <span class="stat-live-label">จำนวนผู้มีสิทธิ์ลุ้นรางวัล</span>
+                </div>
+                <div class="stat-live-divider"></div>
+                <div class="stat-live-item">
+                  <span class="stat-live-num text-orange" id="statRemainPrizesCount">0</span>
+                  <span class="stat-live-label">จำนวนรางวัลคงเหลือ</span>
+                </div>
+              </div>
+
+              <!-- ซ่อน progress-track และ statPercentValue ไว้เพื่อรองรับ JS อัปเดตข้อมูลอัตโนมัติ -->
+              <span id="statPercentValue" style="display:none;">0.0%</span>
+              <div class="progress-track" style="display:none;" title="ความคืบหน้าการลงทะเบียน">
+                <div class="progress-fill" id="statProgressBar" style="width: 0%;"></div>
+              </div>
+              <span class="ratio-subtext" id="statRatioText" style="display:none;">0 จากทั้งหมด 0 คน</span>
+            </div>
+          </aside>
+
+          <!-- ฝั่งขวา 60%: ข้อความ ระบบสุ่มเลือกผู้รับรางวัล และ กล่องเลือกสุ่มรางวัลตาม Group -->
+          <section class="screen-col-60">
+            <!-- เหนือกล่อง: ข้อความ ระบบสุ่มเลือกผู้รับรางวัล (เด่นชัด) -->
+            <div class="draw-system-heading">
+              <h1 class="draw-system-title btn-back-to-admin">🎯 ระบบสุ่มเลือกผู้รับรางวัล</h1>
+            </div>
+
+            <!-- กล่องในการเลือกการสุ่มของรางวัลตาม Group ของของรางวัลที่กำหนดไว้ -->
+            <div class="group-select-section">
+              <div class="group-select-header">
+                <div class="group-select-title-wrap">
+                  <span class="group-select-icon">🎁</span>
+                  <span class="group-select-title">เลือกการสุ่มของรางวัลตาม Group</span>
+                </div>
+                <a href="#draw" class="btn-all-prizes-link" onclick="window.goToDrawByGroup('ALL')"
+                  title="ดูของรางวัลทั้งหมดและเข้าสู่ระบบสุ่มรางวัล">
+                  <span>สุ่มรางวัลทั้งหมด</span>
+                  <span class="link-arrow">➔</span>
+                </a>
+              </div>
+
+              <!-- กล่องแสดงรายการ Group แต่ละกล่องคลิกลิงก์ไปหน้าสุ่มรางวัลได้ (กว้าง 33%) -->
+              <div class="reward-groups-grid" id="rewardGroupsGrid">
+                <!-- Rendered dynamically by random.js with fallback -->
+              </div>
+            </div>
+          </section>
+
+        </div>
+      </div>
+
+      <!-- ================================================================= -->
+      <!-- VIEW 2: LUCKY DRAW (ระบบสุ่มเลือกผู้รับรางวัล)                   -->
+      <!-- ================================================================= -->
+      <div id="viewLuckyDraw" class="random-view-panel" style="display: none;">
+        <!-- Header: หัวข้อ ระบบสุ่มเลือกผู้รับรางวัล -->
+        <div class="draw-view-header">
+          <div class="draw-header-top-row">
+            <button type="button" class="btn-back-to-reg" id="btnBackToReg" title="ย้อนกลับไปหน้าลงทะเบียน">
+              <span class="back-arrow">‹</span>
+              <span>หน้าลงทะเบียน</span>
+            </button>
+            <div class="draw-header-center">
+              <h1 class="draw-view-title">ระบบสุ่มเลือกผู้รับรางวัล</h1>
+              <p class="draw-view-subtitle">AL Drive Forum Special</p>
+            </div>
+            <div class="draw-header-actions">
+              <span class="draw-category-pill" id="drawCategoryPill">👥 แบบกลุ่ม</span>
+              <span class="draw-eligible-pill" id="drawEligiblePill">ผู้มีสิทธิ์: 0 คน</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter bar for groups in View 2 (Centered Wrapper) -->
+        <div class="draw-groups-filter-bar-wrap">
+          <div class="draw-groups-filter-bar" id="drawGroupsFilterBar">
+            <!-- Dynamically populated chips: ทุกกลุ่ม, Group-1..Group-9, Group Extra -->
+          </div>
+        </div>
+
+        <!-- 2 แถว แถวละ 3 ช่อง ความกว้าง และความสูงของแต่ละกล่องเท่ากัน -->
+        <div class="prizes-grid-2x3" id="prizesGrid2x3">
+          <!-- 6 boxes rendered dynamically via random.js without inside draw buttons -->
+        </div>
+
+        <!-- NEW: Group Extra Specialized View (แบ่ง 2 ส่วน กว้างส่วนละ 50%) -->
+        <div class="group-extra-stage-wrap" id="groupExtraStageWrap" style="display: none;">
+          <!-- Dynamically populated via renderGroupExtraStage() in random.js -->
+        </div>
+
+        <!-- ปุ่มสุ่มใหม่ไว้ที่ด้านล่างสุดของกล่อง -->
+        <!-- ปุ่มสุ่มใหม่ไว้ที่ด้านล่างสุดของกล่อง (สุ่มรางวัลปกติ และ สุ่มรางวัลแบบเร็ว) -->
+        <div class="grand-draw-trigger-row" id="grandDrawTriggerRow">
+          <button type="button" class="btn-grand-trigger" id="btnOpenGrandDrawModal"
+            title="คลิกเพื่อเปิดระบบสุ่มรางวัล (แสดงอนิเมชั่นสุ่มทีละรางวัล)">
+            <span class="grand-trigger-sparkle">🎲</span>
+            <span class="grand-trigger-text">สุ่มรางวัล</span>
+            <span class="grand-trigger-arrow">➔</span>
+          </button>
+
+          <button type="button" class="btn-grand-trigger btn-fast-trigger" style="margin-left:20px;"
+            id="btnOpenFastDrawModal" title="คลิกเพื่อเปิดระบบสุ่มรางวัลแบบเร็ว (สุ่มครบทุกรางวัลทันที)">
+            <span class="grand-trigger-sparkle">⚡</span>
+            <span class="grand-trigger-text">สุ่มรางวัลแบบเร็ว</span>
+            <span class="grand-trigger-arrow">➔</span>
+          </button>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- ================================================================= -->
+    <!-- LIGHTBOX MODAL (ขนาดกว้าง 80%): ระบบสุ่มเลือกผู้รับรางวัล         -->
+    <!-- ================================================================= -->
+    <div class="grand-draw-modal" id="grandDrawModal" style="display: none;">
+      <div class="grand-modal-card">
+        <button type="button" class="btn-close-grand" id="btnCloseGrandModal" title="ปิดหน้าต่าง">&times;</button>
+
+        <!-- Modal Top Header -->
+        <div class="grand-modal-header">
+          <div class="grand-title-badge">
+            <span class="ttb-dot"></span>
+            <span>AL Drive Forum Special</span>
+          </div>
+          <h2 class="grand-modal-headline" id="grandModalHeadline">ระบบสุ่มเลือกผู้รับรางวัล</h2>
+          <p class="grand-modal-caption">สแกน QR Code เพื่อตรวจสอบผลการจับรางวัล หรือกดปุ่ม "สุ่มรางวัล"
+            ด้านล่างเพื่อสุ่มผู้โชคดีครบทุกรางวัล</p>
+        </div>
+
+        <!-- 2 Columns Grid: ซ้าย QR Code | ขวา รายละเอียดและรายการของรางวัลทั้งหมด -->
+        <div class="grand-modal-body-grid">
+          <!-- ด้านซ้าย: QR Code สแกนเพื่อตรวจสอบผลการจับรางวัล -->
+          <div class="grand-col-left">
+            <div class="grand-qr-card">
+              <div class="grand-qr-tag">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
+                  <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+                  <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+                  <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
+                  <rect x="7" y="7" width="10" height="10" rx="1"></rect>
+                </svg>
+                <span>SCAN TO CHECK RESULT</span>
+              </div>
+
+              <!-- QR Code Frame (คลิกเพื่อขยายภาพให้ใหญ่ขึ้น) -->
+              <div class="grand-qr-frame" id="grandQrFrame" title="คลิกเพื่อขยายภาพ QR Code ให้ใหญ่ขึ้น">
+                <img src="./images/qr-influ.png" alt="QR Code ตรวจสอบผลรางวัล" class="grand-qr-img" id="grandQrImg">
+              </div>
+
+              <div class="grand-qr-desc">
+                <h3 class="grand-qr-title">
+                  <span>📱</span>
+                  <span>สแกน QR Code</span>
+                </h3>
+                <p class="grand-qr-text">สแกนเพื่อตรวจสอบผลการจับรางวัล</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- ด้านขวามือ: รายละเอียดการจับรางวัล และแสดงรางวัลทั้งหมด พร้อมจำนวนรางวัล -->
+          <div class="grand-col-right">
+            <div class="grand-prizes-header">
+              <div class="grand-prizes-title-box">
+                <h3 class="grand-section-title">รายละเอียดการจับรางวัล</h3>
+                <span class="grand-sub-tag">แสดงรายการของรางวัลทั้งหมดและจำนวนรางวัล</span>
+              </div>
+              <div class="grand-stats-tags">
+                <span class="stat-pill-item" id="modalEligibleCountPill">ผู้มีสิทธิ์: 0 คน</span>
+                <span class="stat-pill-item pill-highlight" id="modalTotalQuotaPill">รางวัลรวม: 0 ชิ้น</span>
+                <span class="stat-pill-item pill-success" id="modalDrawnCountPill">สุ่มแล้ว: 0 ชิ้น</span>
+              </div>
+            </div>
+
+            <!-- รายการของรางวัลทั้งหมด พร้อมจำนวนรางวัล -->
+            <div class="grand-prizes-list-container" id="grandPrizesListContainer">
+              <!-- Rendered dynamically via JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- ด้านล่าง: ปุ่มสุ่มรางวัล และ แสดงสถานะการสุ่มครบทุกรางวัล -->
+        <div class="grand-modal-footer">
+          <!-- Animation Ticker / Status Bar -->
+          <div class="grand-draw-live-ticker" id="grandDrawLiveTicker" style="display: none;">
+            <div class="ticker-roller">
+              <span class="ticker-dice">🎲</span>
+              <span class="ticker-text" id="grandDrawLiveText">กำลังสุ่มผู้โชคดี...</span>
+            </div>
+          </div>
+
+          <div class="grand-footer-actions">
+            <button type="button" class="btn-execute-all" id="btnExecuteAllDraw">
+              <span class="exec-icon">🎲</span>
+              <span class="exec-text" id="btnExecuteAllText">สุ่มรางวัล</span>
+              <span class="exec-arrow">➔</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- LIGHTBOX: รายละเอียดของรางวัล (คลิกที่รูปภาพของรางวัล)            -->
+    <!-- ================================================================= -->
+    <div class="prize-detail-modal" id="prizeDetailModal" style="display: none;">
+      <div class="prize-detail-card">
+        <button type="button" class="btn-close-prize-detail" id="btnClosePrizeDetail"
+          title="ปิดหน้าต่าง">&times;</button>
+
+        <div class="prize-detail-img-wrap">
+          <img id="detailModalImg" src="" alt="รูปของรางวัล" class="prize-detail-large-img">
+        </div>
+
+        <div class="prize-detail-content">
+          <span class="prize-detail-order-badge" id="detailModalOrderBadge">ลำดับที่ 1</span>
+          <h2 class="prize-detail-title" id="detailModalTitle">ชื่อของรางวัล</h2>
+
+          <div class="prize-detail-meta-row">
+            <span class="detail-meta-pill" id="detailModalQtyPill">จำนวน 5 รางวัล</span>
+            <span class="detail-meta-pill pill-remain" id="detailModalRemainPill">คงเหลือ 5 รางวัล</span>
+          </div>
+
+          <div class="prize-detail-winners-box">
+            <h4 class="detail-winners-title">รายชื่อผู้โชคดีที่ได้รับรางวัลนี้:</h4>
+            <div class="detail-winners-list" id="detailModalWinnersList">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- ================================================================= -->
+    <!-- LIGHTBOX MODAL: ขยายภาพ QR Code ให้ใหญ่ขึ้น                        -->
+    <!-- ================================================================= -->
+    <div class="qr-lightbox-modal" id="qrLightboxModal" style="display: none;" role="dialog" aria-modal="true"
+      aria-labelledby="qrLightboxTitle">
+      <div class="qr-lightbox-card">
+        <button type="button" class="btn-close-qr-lightbox" id="btnCloseQrLightbox" title="ปิดหน้าต่าง">&times;</button>
+
+        <!-- บรรทัดที่ 1: กรอบรูปภาพ QR Code ขนาดใหญ่ อยู่ตรงกลาง -->
+        <div class="qr-lightbox-img-wrap">
+          <img src="./images/qr-influ.png" alt="QR Code ขนาดใหญ่" class="qr-lightbox-img" id="qrLightboxImg">
+        </div>
+
+        <!-- บรรทัดที่ 2: กล่อง Badge สถานะ อยู่ตรงกลาง คนละบรรทัดกับ QR Code -->
+        <div class="qr-lightbox-badge">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
+            <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+            <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+            <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
+            <rect x="7" y="7" width="10" height="10" rx="1"></rect>
+          </svg>
+          <span id="qrLightboxBadgeText">SCAN QR CODE</span>
+        </div>
+
+        <!-- บรรทัดถัดไป: ข้อความหัวข้อและคำอธิบาย อยู่ตรงกลาง -->
+        <h3 class="qr-lightbox-title" id="qrLightboxTitle">สแกน QR Code เพื่อลงทะเบียน</h3>
+        <p class="qr-lightbox-desc" id="qrLightboxDesc">เปิดกล้องมือถือแล้วสแกนเพื่อเข้าร่วมกิจกรรมและลุ้นรับของรางวัล
+        </p>
+      </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- LIGHTBOX MODAL: สุ่มผู้โชคดี (Roulette & Winner Reveal Animation) -->
+    <!-- ================================================================= -->
+    <div class="draw-roulette-modal" id="drawRouletteModal" style="display: none;" role="dialog" aria-modal="true">
+      <div class="roulette-modal-card">
+        <button type="button" class="btn-close-roulette" id="btnCloseRoulette" title="ปิดหน้าต่าง">&times;</button>
+        <div class="roulette-prize-badge" id="roulettePrizeBadge">🎁 สุ่มรางวัล</div>
+        <div class="roulette-prize-header-wrap">
+          <div class="roulette-prize-thumb-box" id="roulettePrizeThumb">🎁</div>
+          <h2 class="roulette-prize-title" id="roulettePrizeTitle">ชื่อของรางวัล</h2>
+        </div>
+
+        <!-- Rolling State (กำลังหมุนสุ่ม) -->
+        <div class="roulette-stage-rolling" id="rouletteStageRolling">
+          <div class="rolling-box">
+            <div class="rolling-id" id="rollingEmpId">กำลังสุ่ม...</div>
+            <div class="rolling-name" id="rollingEmpName">กรุณารอสักครู่</div>
+            <div class="rolling-info" id="rollingEmpInfo">AL Drive Forum Special</div>
+          </div>
+          <p class="rolling-hint">🎲 ระบบกำลังสุ่มรายชื่อผู้มีสิทธิ์เข้าร่วมงาน...</p>
+        </div>
+
+        <!-- Winner Reveal State (แสดงชื่อผู้โชคดี) -->
+        <div class="roulette-stage-winner" id="rouletteStageWinner" style="display: none;">
+          <div class="winner-congrats-tag">🎉 ขอแสดงความยินดีกับผู้โชคดี! 🎉</div>
+          <div class="winner-hero-box">
+            <div class="winner-hero-id" id="winnerHeroId">20138</div>
+            <div class="winner-hero-name" id="winnerHeroName">ชื่อ - สกุล</div>
+            <div class="winner-hero-details" id="winnerHeroDetails">กลุ่ม: BBD | สาขา: ...</div>
+          </div>
+          <div class="winner-fly-hint" id="winnerFlyHint">
+            <span>✨ กำลังนำรายชื่อเข้าสู่รายการของรางวัล...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- LIGHTBOX MODAL: ข้อมูลผู้ได้รับรางวัล และ ยืนยันการรับรางวัล      -->
+    <!-- ================================================================= -->
+    <div class="winner-claim-modal" id="winnerClaimModal" style="display: none;" role="dialog" aria-modal="true"
+      aria-labelledby="winnerClaimHeadline">
+      <div class="winner-claim-card">
+        <button type="button" class="btn-close-winner-claim" id="btnCloseWinnerClaim"
+          title="ปิดหน้าต่าง">&times;</button>
+
+        <!-- Header -->
+        <div class="winner-claim-header">
+          <div class="winner-claim-badge">
+            <span>🏆 ข้อมูลผู้ได้รับรางวัล</span>
+          </div>
+          <h2 class="winner-claim-headline" id="winnerClaimHeadline">ยืนยันการรับมอบของรางวัล</h2>
+          <p class="winner-claim-sub">ตรวจสอบข้อมูลพนักงานและกดปุ่มด้านล่างเพื่อบันทึกสถานะการรับรางวัล</p>
+        </div>
+
+        <!-- Body: รางวัลที่ได้รับ + ข้อมูลพนักงาน -->
+        <div class="winner-claim-body">
+          <!-- กล่องข้อมูลของรางวัล -->
+          <div class="claim-prize-card">
+            <div class="claim-prize-img-wrap" id="claimModalPrizeImgWrap">
+              <!-- Dynamically populated via JS with real prize image -->
+            </div>
+            <div class="claim-prize-details">
+              <span class="claim-prize-order-badge" id="claimModalPrizeOrder">ลำดับที่ 1</span>
+              <h3 class="claim-prize-name" id="claimModalPrizeName">ชื่อของรางวัล</h3>
+              <div class="claim-status-pill status-pending" id="claimModalStatusPill">
+                <span class="status-dot"></span>
+                <span id="claimModalStatusText">ยังไม่ได้รับรางวัล</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- กล่องข้อมูลพนักงาน -->
+          <div class="claim-emp-card">
+            <h4 class="claim-card-title">ข้อมูลผู้ได้รับรางวัล</h4>
+            <div class="claim-info-grid">
+              <div class="claim-info-item">
+                <span class="claim-info-label">รหัสพนักงาน:</span>
+                <strong class="claim-info-val claim-val-highlight" id="claimModalEmpId">20424</strong>
+              </div>
+              <div class="claim-info-item">
+                <span class="claim-info-label">ชื่อ - นามสกุล:</span>
+                <strong class="claim-info-val" id="claimModalEmpName">ชื่อพนักงาน</strong>
+              </div>
+              <div class="claim-info-item">
+                <span class="claim-info-label">กลุ่มงาน (Group):</span>
+                <span class="claim-info-val" id="claimModalEmpGroup">BBD</span>
+              </div>
+              <div class="claim-info-item">
+                <span class="claim-info-label">Member:</span>
+                <span class="claim-info-val" id="claimModalEmpMember">-</span>
+              </div>
+              <div class="claim-info-item">
+                <span class="claim-info-label">สาขา / สังกัด:</span>
+                <span class="claim-info-val" id="claimModalEmpBranch">-</span>
+              </div>
+              <div class="claim-info-item">
+                <span class="claim-info-label">เวลาที่สุ่มได้:</span>
+                <span class="claim-info-val" id="claimModalDrawTime">-</span>
+              </div>
+              <div class="claim-info-item" id="claimModalClaimedRow" style="display: none;">
+                <span class="claim-info-label">เวลารับรางวัล:</span>
+                <span class="claim-info-val claim-val-success" id="claimModalClaimedTime">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer Actions -->
+        <div class="winner-claim-footer">
+          <button type="button" class="btn-confirm-claim" id="btnConfirmClaim">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span id="btnConfirmClaimText">ยืนยันการรับรางวัล</span>
+          </button>
+          <button type="button" class="btn-cancel-claim-status" id="btnCancelClaimStatus" style="display: none;">
+            <span>ยกเลิกสถานะรับรางวัล</span>
+          </button>
+          <p class="claim-notice-hint" id="claimNoticeHint">⚠️ กรุณาตรวจสอบความถูกต้องก่อนกดยืนยันการรับรางวัล</p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- LIGHTBOX MODAL: ยืนยันการลบรายชื่อผู้ได้รับการสุ่มเพื่อสุ่มใหม่ (Group Extra) -->
+    <!-- ================================================================= -->
+    <div class="extra-redraw-modal" id="extraRedrawConfirmModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="redrawModalHeadline">
+      <div class="extra-redraw-card">
+        <button type="button" class="btn-close-redraw-modal" id="btnCloseRedrawModal" title="ปิดหน้าต่าง">&times;</button>
+        
+        <div class="redraw-modal-header">
+          <div class="redraw-modal-badge">
+            <span>🔄 ยืนยันการสุ่มรางวัลใหม่</span>
+          </div>
+          <h2 class="redraw-modal-headline" id="redrawModalHeadline">ยืนยันการลบรายชื่อผู้ได้รับการสุ่ม?</h2>
+          <p class="redraw-modal-sub">กรุณาตรวจสอบข้อมูลด้านล่าง และกดยืนยันเพื่อลบรายชื่อผู้ได้รับการสุ่มท่านนี้ออกจากระบบ และทำการสุ่มรางวัลใหม่</p>
+        </div>
+
+        <div class="redraw-modal-body">
+          <div class="redraw-winner-info-card">
+            <div class="redraw-info-row">
+              <span class="redraw-info-label">🎁 ของรางวัล:</span>
+              <strong class="redraw-info-val text-yellow" id="redrawModalPrizeName">-</strong>
+            </div>
+            <div class="redraw-info-row">
+              <span class="redraw-info-label">👤 ผู้บริหารที่มอบรางวัล:</span>
+              <span class="redraw-info-val" id="redrawModalExecutiveName">-</span>
+            </div>
+            <div class="redraw-info-divider"></div>
+            <div class="redraw-info-row">
+              <span class="redraw-info-label">🏷️ รหัสพนักงาน:</span>
+              <strong class="redraw-info-val text-blue" id="redrawModalEmpId">-</strong>
+            </div>
+            <div class="redraw-info-row">
+              <span class="redraw-info-label">🏆 ชื่อ-นามสกุล ผู้ได้รับการสุ่ม:</span>
+              <strong class="redraw-info-val text-gold" id="redrawModalEmpName">-</strong>
+            </div>
+            <div class="redraw-info-row">
+              <span class="redraw-info-label">🏢 สังกัด:</span>
+              <span class="redraw-info-val" id="redrawModalEmpGroup">-</span>
+            </div>
+            <div class="redraw-info-row">
+              <span class="redraw-info-label">⏱️ เวลาที่สุ่มได้:</span>
+              <span class="redraw-info-val text-muted" id="redrawModalDrawTime">-</span>
+            </div>
+          </div>
+
+          <div class="redraw-modal-warning-box">
+            <span class="warning-icon">⚠️</span>
+            <span>เมื่อกดยืนยัน รายชื่อพนักงานท่านนี้จะถูกนำออกจากผลรางวัล และจะกลับมามีสิทธิ์ลุ้นรางวัลอีกครั้ง</span>
+          </div>
+        </div>
+
+        <div class="redraw-modal-footer">
+          <button type="button" class="btn-redraw-confirm-action" id="btnConfirmRedrawAction">
+            <span class="btn-icon">🗑️</span>
+            <span>ยืนยันการลบรายการและสุ่มใหม่</span>
+          </button>
+          <button type="button" class="btn-redraw-cancel-action" id="btnCancelRedrawAction">
+            <span>ยกเลิก</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Random Screen Script -->
+  <script src="./js/random.js"></script>
+</body>
+
+</html>

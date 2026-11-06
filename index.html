@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>ระบบลงทะเบียนพนักงาน | AL Drive Forum Special</title>
+
+  <!-- Google Fonts: Kanit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap"
+    rel="stylesheet">
+
+  <!-- Canvas Confetti for Celebration -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <!-- Firebase Compat SDK v8 -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="./js/firebase-config.js"></script>
+
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+  <!-- Ambient background for desktop view -->
+  <div class="desktop-bg-blur"></div>
+
+  <!-- Main Mobile App Wrapper -->
+  <main class="mobile-device-frame">
+
+
+    <!-- App Content Scroll Area -->
+    <div class="app-scroll-container">
+
+      <!-- VIEW 1: Registration View -->
+      <div id="registrationView" class="view-panel">
+        <!-- Central Branding & Hero Section -->
+        <section class="hero-section">
+          <!-- Floating Light Glow behind Header -->
+          <div class="glow-orb" aria-hidden="true"></div>
+
+          <!-- Center Header Image -->
+          <div class="header-image-wrapper">
+            <img src="./images/logo@.png" alt="AL Drive Forum Special" class="header-logo animate-float"
+              id="headerLogo">
+          </div>
+
+        </section>
+
+        <!-- Registration Card Form -->
+        <section class="registration-section">
+          <div class="glass-card">
+            <div class="card-header">
+              <h1 class="form-title">ลงทะเบียนพนักงาน</h1>
+              <p class="form-subtitle">กรอกรหัสพนักงานเพื่อยืนยันสิทธิ์เข้าร่วมงาน</p>
+              <div class="realtime-live-badge" id="realtimeLiveBadge" title="ข้อมูลอัปเดตแบบ Real-time">
+                <span class="live-pulse-dot"></span>
+                <span class="live-label">สถานะ Real-time: ลงทะเบียนแล้ว <strong id="liveRegisteredCount">0</strong>
+                  คน</span>
+              </div>
+            </div>
+
+            <form id="regForm" class="reg-form" novalidate autocomplete="off">
+              <!-- Employee ID Input Group -->
+              <div class="form-group" id="formGroupEmpId">
+                <label for="empId" class="input-label">
+                  <span>รหัสพนักงาน</span>
+                  <span class="label-badge">Employee ID</span>
+                </label>
+
+                <div class="input-wrapper">
+                  <span class="input-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                      stroke-linejoin="round">
+                      <rect x="2" y="4" width="20" height="16" rx="3"></rect>
+                      <path d="M7 15h4M7 11h2"></path>
+                      <circle cx="16" cy="11" r="2"></circle>
+                    </svg>
+                  </span>
+
+                  <input type="text" id="empId" name="empId" class="text-input"
+                    placeholder="กรอกรหัสพนักงาน (ตัวเลขเท่านั้น)" maxlength="10" inputmode="numeric" pattern="[0-9]*"
+                    oninput="this.value = this.value.replace(/\D/g, '')" required>
+
+                  <button type="button" class="btn-clear" id="btnClear" title="ล้างข้อความ" aria-label="Clear input">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                      stroke-linejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
+                </div>
+
+                <!-- Error & Hint Messages -->
+                <div class="feedback-msg" id="feedbackMsg" role="alert" aria-live="polite"></div>
+              </div>
+
+
+              <!-- Submit Registration Button -->
+              <button type="submit" class="btn-submit" id="btnSubmit">
+                <span class="btn-text">ลงทะเบียน</span>
+                <span class="btn-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <path d="M5 12h14M12 5l7 7-7 7" />
+                  </svg>
+                </span>
+                <span class="btn-spinner" aria-hidden="true"></span>
+              </button>
+            </form>
+
+            <footer class="card-footer">
+              <svg class="secure-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+              <span>ระบบลงทะเบียนยืนยันสิทธิ์เข้าร่วมกิจกรรม</span>
+            </footer>
+          </div>
+        </section>
+
+        <!-- Bottom Spacer -->
+        <div class="bottom-spacer" aria-hidden="true"></div>
+      </div>
+
+      <!-- VIEW 2: REWARD PAGE VIEW (แสดงเมื่อพนักงานผ่านการลงทะเบียน และฟิลด์ Group ไม่ใช่ค่าว่าง, - หรือ null) -->
+      <section id="rewardPageView" class="reward-page-view" style="display: none;">
+        <!-- Header Banner -->
+        <div class="reward-header">
+          <div class="header-image-wrapper">
+            <img src="./images/logo@.png" alt="AL Drive Forum Special" class="reward-logo animate-float">
+          </div>
+          <h2 class="reward-hero-title">ตรวจสอบผลการจับรางวัล</h2>
+          <p class="reward-hero-sub">ยืนยันสิทธิ์และตรวจสอบผลการสุ่มของรางวัล</p>
+        </div>
+
+        <!-- TOP SECTION: ข้อมูลของพนักงาน (Employee Information Card) -->
+        <div class="glass-card emp-info-card">
+          <div class="card-section-label">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <span>ข้อมูลพนักงาน (Employee Profile)</span>
+          </div>
+
+          <div class="emp-profile-header">
+            <div class="emp-avatar-circle" id="pageAvatarCircle">
+              <span id="pageAvatarLetter">พ</span>
+            </div>
+            <div class="emp-main-meta">
+              <div class="emp-id-row">
+                <span class="badge-empid" id="pageEmpId">20424</span>
+                <span class="badge-reg-status"><span class="dot-live-status"></span> ลงทะเบียนแล้ว</span>
+              </div>
+              <h3 class="emp-fullname" id="pageEmpName">จารุวรรณ ศิรินาวี</h3>
+              <p class="emp-job-title" id="pageEmpPosition">CFSA</p>
+            </div>
+          </div>
+
+          <!-- รูปที่ 2: emp-info-grid (ปิดการแสดงผลตามที่ผู้ใช้ร้องขอ) -->
+          <div class="emp-info-grid" style="display: none;">
+            <div class="info-cell highlight-cell">
+              <span class="info-cell-label">กลุ่ม (Group)</span>
+              <span class="badge-group-chip badge-group-default" id="pageEmpGroup">T-Con</span>
+            </div>
+            <div class="info-cell">
+              <span class="info-cell-label">ภาค (RH)</span>
+              <span class="info-cell-value" id="pageEmpRH">RH5</span>
+            </div>
+            <div class="info-cell">
+              <span class="info-cell-label">โซน (Zone)</span>
+              <span class="info-cell-value" id="pageEmpZone">ราชบุรี</span>
+            </div>
+            <div class="info-cell">
+              <span class="info-cell-label">สาขา (Branch)</span>
+              <span class="info-cell-value" id="pageEmpBranch">สาขาดำเนินสะดวก</span>
+            </div>
+            <div class="info-cell full-span">
+              <span class="info-cell-label">เวลาที่ลงทะเบียน</span>
+              <span class="info-cell-value" id="pageRegTime">29 ต.ค. 2569 เวลา 14:41 น.</span>
+            </div>
+          </div>
+
+          <!-- รูปที่ 3: digital-ticket-box (ปิดการแสดงผลตามที่ผู้ใช้ร้องขอ) -->
+          <div class="digital-ticket-box" style="display: none;">
+            <div class="ticket-barcode-lines"></div>
+            <div class="ticket-code-row">
+              <span class="ticket-code-label">TICKET CODE</span>
+              <span class="ticket-code-val" id="pageTicketCode">TTB-2026-6294</span>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- BOTTOM SECTION: ตรวจสอบผลการจับรางวัล (Lucky Draw Real-time Section) -->
+        <div class="glass-card rewards-section-card" id="luckyDrawSectionCard">
+          <div class="card-section-label label-accent">
+            <div class="label-left-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 12 20 22 4 22 4 12"></polyline>
+                <rect x="2" y="7" width="20" height="5"></rect>
+                <line x1="12" y1="22" x2="12" y2="7"></line>
+                <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path>
+                <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path>
+              </svg>
+              <span>ตรวจสอบผลการจับรางวัล</span>
+            </div>
+            <div class="live-realtime-pill">
+              <span class="live-pulse-dot"></span>
+              <span>Real-time</span>
+            </div>
+          </div>
+
+          <!-- Dynamic Container for Lucky Draw Result -->
+          <div class="lucky-draw-result-container" id="luckyDrawResultContainer">
+            <!-- Rendered dynamically via JavaScript in real-time -->
+          </div>
+        </div>
+
+        <!-- Back / Home Button & Logout Button in same row -->
+        <div class="reward-bottom-actions">
+          <button type="button" class="btn-return-home" id="btnReturnHome">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+            <span>กลับสู่หน้าหลัก</span>
+          </button>
+          <button type="button" class="btn-logout" id="btnLogout">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            <span>Logout</span>
+          </button>
+        </div>
+
+        <div class="bottom-spacer" aria-hidden="true"></div>
+      </section>
+
+    </div>
+
+    <!-- Success Modal Pop-up -->
+    <div class="modal-backdrop" id="successModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-card">
+        <div class="modal-badge-wrapper">
+          <div class="modal-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
+              stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+        </div>
+
+        <h2 id="modalTitle" class="modal-title">ลงทะเบียนสำเร็จ!</h2>
+        <p class="modal-subtitle">บันทึกข้อมูลการเข้าร่วมงานเรียบร้อยแล้ว</p>
+
+        <!-- Digital Pass Card -->
+        <div class="pass-card">
+          <div class="pass-header">
+            <span class="pass-event">AL Drive Forum Special</span>
+            <span class="pass-status">CONFIRMED</span>
+          </div>
+          <div class="pass-body">
+            <div class="pass-field" id="rowEmpName" style="display: none;">
+              <span class="pass-label">ชื่อ - นามสกุล</span>
+              <span class="pass-value" id="modalEmpName">-</span>
+            </div>
+            <div class="pass-field">
+              <span class="pass-label">รหัสพนักงาน</span>
+              <span class="pass-value" id="modalEmpId">108425</span>
+            </div>
+            <div class="pass-field" id="rowEmpBranch" style="display: none;">
+              <span class="pass-label">สาขา / กลุ่ม</span>
+              <span class="pass-value" id="modalEmpBranch">-</span>
+            </div>
+            <div class="pass-field">
+              <span class="pass-label">เวลาที่ลงทะเบียน</span>
+              <span class="pass-value" id="modalRegTime">29 ต.ค. 2026 10:55 น.</span>
+            </div>
+          </div>
+          <div class="pass-ticket-barcode">
+            <div class="barcode-lines"></div>
+            <span class="barcode-code" id="modalTicketCode">BTI-2026-9042</span>
+          </div>
+        </div>
+
+        <button type="button" class="btn-modal-close" id="btnModalClose">
+          เสร็จสิ้น
+        </button>
+      </div>
+    </div>
+
+    <!-- Claim Confirmation Lightbox Modal (เมื่อกดยืนยันการรับรางวัล) -->
+    <div class="modal-backdrop" id="claimConfirmModal" role="dialog" aria-modal="true"
+      aria-labelledby="claimModalTitle">
+      <div class="modal-card claim-confirm-modal-card">
+        <!-- Icon ยืนยันการรับรางวัล -->
+        <div class="modal-badge-wrapper">
+          <div class="modal-badge modal-badge-claim">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+        </div>
+
+        <h2 id="claimModalTitle" class="modal-title">ยืนยันการรับของรางวัล</h2>
+        <p class="modal-subtitle">กรุณาตรวจสอบข้อมูลก่อนยืนยันการรับรางวัล</p>
+
+        <!-- แสดงรหัสพนักงาน ชื่อ-นามสกุล และรายการของรางวัลที่ได้รับ -->
+        <div class="claim-details-box">
+          <div class="claim-detail-row">
+            <span class="claim-detail-label">รหัสพนักงาน</span>
+            <span class="claim-detail-val" id="claimModalEmpId">-</span>
+          </div>
+          <div class="claim-detail-row">
+            <span class="claim-detail-label">ชื่อ - นามสกุล</span>
+            <span class="claim-detail-val" id="claimModalEmpName">-</span>
+          </div>
+          <div class="claim-detail-row full-prize-row">
+            <span class="claim-detail-label">ของรางวัลที่ได้รับ</span>
+            <!-- รูปภาพของรางวัล -->
+            <div class="claim-modal-prize-frame" id="claimModalPrizeFrame">
+              <img id="claimModalPrizeImg" src="" alt="ของรางวัล" class="claim-modal-prize-img" style="display: none;">
+              <div id="claimModalPrizeFallback" class="claim-modal-prize-fallback">🎁</div>
+            </div>
+            <!-- ชื่อของรางวัล (ไม่มี icon และจัดกึ่งกลาง) -->
+            <span class="claim-detail-prize" id="claimModalPrizeName">-</span>
+          </div>
+          <!-- ผู้มอบรางวัล (กรณีมีข้อมูลเจ้าของรางวัล / ผู้บริหาร) -->
+          <div class="claim-detail-row full-owner-row" id="claimModalOwnerRow" style="display: none;">
+            <span class="claim-detail-label">ผู้มอบรางวัล</span>
+            <div class="claim-modal-owner-wrap">
+              <span class="claim-modal-owner-name" id="claimModalOwnerName">-</span>
+              <span class="claim-modal-owner-pos" id="claimModalOwnerPos"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ขอให้คุณกดยืนยันต่อหน้าเจ้าหน้าที่เท่านั้น -->
+        <div class="claim-officer-alert">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <span>*** ขอให้คุณกดยืนยันต่อหน้าเจ้าหน้าที่เท่านั้น ***</span>
+        </div>
+
+        <!-- ปุ่มกดใน Lightbox -->
+        <div class="claim-modal-actions">
+          <button type="button" class="btn-claim-modal-confirm" id="btnClaimModalConfirm">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span id="claimModalBtnText">ยืนยันรับรางวัลแล้ว</span>
+          </button>
+          <button type="button" class="btn-claim-modal-cancel" id="btnClaimModalCancel">
+            ยกเลิก
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/app.js"></script>
+</body>
+
+</html>

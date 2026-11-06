@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>รีโมตควบคุมการสุ่มรางวัล | AL Drive Forum Special</title>
+
+  <!-- Google Fonts: Kanit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+
+  <!-- Firebase Compat SDK v8 -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+  <!-- Firebase Configuration & Paths -->
+  <script src="./js/firebase-config.js"></script>
+
+  <!-- Remote Controller Stylesheet -->
+  <link rel="stylesheet" href="./css/remote-reward.css">
+</head>
+
+<body>
+  <!-- Ambient Spotlight Glow Effect -->
+  <div class="ambient-glow" aria-hidden="true"></div>
+
+  <div class="remote-wrapper">
+    <!-- Top Sticky Header -->
+    <header class="remote-header">
+      <div class="header-brand">
+        <span class="brand-icon">🎛️</span>
+        <div class="brand-title-wrap">
+          <h1>AL Drive Forum Special</h1>
+          <p>ระบบรีโมตควบคุมการสุ่มรางวัล (Remote Controller)</p>
+        </div>
+      </div>
+
+      <div class="header-status-bar">
+        <div class="room-pin-bar" title="รหัสเชื่อมต่อห้องระหว่างรีโมตกับหน้าจอบนเวที (ต้องตรงกัน)">
+          <span class="room-pin-label">🔑 รหัสห้อง:</span>
+          <input type="text" id="inputRoomPin" class="input-room-pin" value="AL2026" maxlength="12" placeholder="AL2026" onchange="window.changeRoomPin(this.value)" title="ใส่รหัสห้องให้ตรงกับหน้าจอ Random">
+        </div>
+
+        <div class="status-pill offline" id="remoteStageStatus" title="สถานะการเชื่อมต่อกับหน้าจอบนเวที">
+          <span class="status-dot" style="background: #f59e0b; box-shadow: 0 0 8px #f59e0b;"></span>
+          <span>🖥️ รอหน้าจอ Random เชื่อมต่อ...</span>
+        </div>
+
+        <div class="status-pill offline" id="remoteConnStatus">
+          <span class="status-dot"></span>
+          <span>กำลังเชื่อมต่อฐานข้อมูล...</span>
+        </div>
+
+        <div class="eligible-pill" title="ผู้มีสิทธิ์ลุ้นรางวัลที่ลงทะเบียนแล้ว และยังไม่ได้รับรางวัล">
+          <span>👥 ผู้มีสิทธิ์:</span>
+          <strong id="remoteEligibleCount">0 คน</strong>
+        </div>
+
+        <div class="eligible-pill" style="background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.35); color: #fbbf24;" title="จำนวนรางวัลคงเหลือทั้งหมด">
+          <span>🎁 รางวัลคงเหลือ:</span>
+          <strong id="remotePrizesRemain">0 รางวัล</strong>
+        </div>
+      </div>
+
+      <div class="header-nav-actions">
+        <a href="random.html" target="_blank" class="btn-header-nav" title="เปิดหน้าจอ Random เพื่อฉายบนเวทีหรือโปรเจกเตอร์">
+          <span>🖥️</span>
+          <span>หน้าจอ Random</span>
+        </a>
+        <a href="admin.html" target="_blank" class="btn-header-nav" title="ไปที่หน้าระบบจัดการข้อมูลและของรางวัล">
+          <span>⚙️</span>
+          <span>หน้า Admin</span>
+        </a>
+      </div>
+    </header>
+
+    <!-- SECTION 1: GROUPS SELECTOR -->
+    <section class="remote-section">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">
+            <span>🎯</span>
+            <span>1. เลือกกลุ่มรางวัลที่จะสุ่ม (Select Prize Group)</span>
+          </h2>
+          <p class="section-desc">คลิกเลือกกลุ่มด้านล่างเพื่อสั่งให้ทุกหน้าจอบนเวที (random.html) สลับไปยังกลุ่มนี้ทันทีแบบ Real-time</p>
+        </div>
+        <div>
+          <button type="button" class="btn-overview-switch" onclick="window.switchStageToOverview()" title="สั่งให้ทุกหน้าจอกลับไปที่หน้ารวมตัวเลือกกลุ่มรางวัล">
+            <span>🏠</span>
+            <span>แสดงหน้ารวมกลุ่มบนจอใหญ่ (Overview)</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="groups-selector-grid" id="groupsSelectorGrid">
+        <div style="text-align: center; padding: 20px; color: var(--text-muted); grid-column: 1 / -1;">
+          กำลังโหลดกลุ่มรางวัล...
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: ACTIVE GROUP DRAW CONTROL PANEL -->
+    <section class="remote-section">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">
+            <span>⚡</span>
+            <span>2. แผงควบคุมและสั่งสุ่มรางวัล (Draw Controller Panel)</span>
+          </h2>
+          <p class="section-desc">กดปุ่มคำสั่งสุ่มรางวัล หน้าจอทุกเครื่องจะเริ่มเล่นอนิเมชั่นและแสดงผลรางวัลเหมือนกันพร้อมจุดพลุและเสียง</p>
+        </div>
+      </div>
+
+      <div id="activeGroupPanelWrap">
+        <div style="text-align: center; padding: 30px; color: var(--text-muted);">
+          กรุณาเลือกกลุ่มรางวัลจากแผงด้านบน
+        </div>
+      </div>
+    </section>
+
+    <!-- CONFIRMATION MODAL (LIGHTBOX) FOR GROUP DRAW (FAST DRAW & ROULETTE) -->
+    <div class="remote-modal-backdrop" id="remoteGroupDrawConfirmModal">
+      <div class="remote-modal-dialog">
+        <h3 class="remote-modal-title" style="color: #fbbf24;">
+          <span id="remoteGroupDrawIcon">⚡</span>
+          <span id="remoteGroupDrawTitleText">ยืนยันการสั่งสุ่มรางวัล</span>
+        </h3>
+
+        <div class="remote-modal-content" id="remoteGroupDrawModalContent">
+          <!-- Populated by JS -->
+        </div>
+
+        <div id="remoteGroupDrawHintBox" style="font-size: 12px; color: #94a3b8; margin-bottom: 16px;">
+          * เมื่อกดยืนยัน ระบบจะทำการสุ่มเลือกผู้โชคดี และส่งคำสั่งแสดงผลไปยังทุกหน้าจอบนเวทีทันที
+        </div>
+
+        <div class="remote-modal-footer">
+          <button type="button" class="btn-modal-cancel" onclick="window.closeGroupDrawConfirmModal()">
+            <span>ยกเลิก</span>
+          </button>
+          <button type="button" class="btn-modal-confirm-draw" id="btnConfirmGroupDrawAction" onclick="window.confirmExecuteGroupDraw()">
+            <span id="btnConfirmGroupDrawIcon">⚡</span>
+            <span id="btnConfirmGroupDrawText">ยืนยันการสุ่มรางวัล</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONFIRMATION MODAL (LIGHTBOX) FOR EXTRA DRAW -->
+    <div class="remote-modal-backdrop" id="remoteExtraDrawConfirmModal">
+      <div class="remote-modal-dialog">
+        <h3 class="remote-modal-title" style="color: #fbbf24;">
+          <span>🎯</span>
+          <span>ยืนยันการสั่งสุ่มรางวัลพิเศษ</span>
+        </h3>
+
+        <div class="remote-modal-content" id="remoteExtraDrawModalContent">
+          <!-- Populated by JS -->
+        </div>
+
+        <div id="remoteExtraDrawHintBox" style="font-size: 12px; color: #94a3b8; margin-bottom: 16px;">
+          * เมื่อกดยืนยัน ระบบจะทำการสุ่มของรางวัลที่เหลือทั้งหมดในครั้งเดียว และส่งสัญญาณให้ทุกหน้าจอแสดงอนิเมชั่นและผลรางวัลทันที
+        </div>
+
+        <div class="remote-modal-footer">
+          <button type="button" class="btn-modal-cancel" onclick="window.closeExtraDrawConfirmModal()">
+            <span>ยกเลิก</span>
+          </button>
+          <button type="button" class="btn-modal-confirm-draw" id="btnConfirmExtraDrawAction" onclick="window.confirmExecuteExtraDraw()">
+            <span id="btnConfirmExtraDrawText">🎯 ยืนยันการสุ่มรางวัล</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONFIRMATION MODAL (LIGHTBOX) FOR REDRAW -->
+    <div class="remote-modal-backdrop" id="remoteRedrawModal">
+      <div class="remote-modal-dialog">
+        <h3 class="remote-modal-title">
+          <span>⚠️</span>
+          <span>ยืนยันการลบผลรางวัลและสุ่มใหม่</span>
+        </h3>
+
+        <div class="remote-modal-content" id="remoteRedrawModalContent">
+          <!-- Populated by JS -->
+        </div>
+
+        <div style="font-size: 12px; color: #fbbf24; margin-bottom: 16px;">
+          * เมื่อยืนยัน ระบบจะลบรายชื่อผู้ได้รับรางวัลนี้ออกจากฐานข้อมูล และสั่งให้ทุกหน้าจอพร้อมทำการสุ่มใหม่อีกครั้ง
+        </div>
+
+        <div class="remote-modal-footer">
+          <button type="button" class="btn-modal-cancel" onclick="window.closeExtraRedrawModal()">
+            <span>ยกเลิก</span>
+          </button>
+          <button type="button" class="btn-modal-confirm-delete" onclick="window.confirmExecuteExtraRedraw()">
+            <span>🗑️ ยืนยันการลบรายการและสุ่มใหม่</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div class="remote-toast" id="remoteToast"></div>
+  </div>
+
+  <!-- Remote Controller Logic -->
+  <script src="./js/remote-reward.js"></script>
+</body>
+
+</html>
+

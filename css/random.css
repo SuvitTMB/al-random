@@ -1781,10 +1781,10 @@ body.in-draw-view .top-bar-right {
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: 9999;
-  background: rgba(3, 7, 24, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  z-index: 99999;
+  background: rgba(3, 7, 24, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   display: flex;
   align-items: center;
   justify-content: center;

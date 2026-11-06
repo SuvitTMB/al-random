@@ -181,7 +181,7 @@
 
   // ===========================================================================
   // REAL-TIME BROADCAST TO ALL SCREENS (random.html)
-  // ส่งสัญญาณไปยัง AL_Reward/_CONTROL_{PIN}_ เพื่อให้ส่งข้ามเครื่องได้จริง 100%
+  // ส่งสัญญาณไปยัง AL_Reward/_CONTROL_{PIN}_ และ _CONTROL_GLOBAL_ เพื่อให้ส่งข้ามเครื่องได้จริง 100%
   // ===========================================================================
   async function broadcastLiveDrawEvent(eventData) {
     if (!eventData) return;
@@ -205,19 +205,34 @@
           type: 'LIVE_DRAW_SYNC',
           drawEvent: eventData
         });
+        const chGlob = new BroadcastChannel('AL_REALTIME_SYNC_GLOBAL');
+        chGlob.postMessage({
+          type: 'LIVE_DRAW_SYNC',
+          drawEvent: eventData
+        });
       } catch (e) {}
     }
 
     // 2. localStorage Event Fallback (Local 0ms สำหรับข้ามแท็บในเครื่องเดียวกัน)
     try {
       localStorage.setItem('AL_LAST_DRAW_EVENT_' + currentPin, JSON.stringify(eventData));
+      localStorage.setItem('AL_LAST_DRAW_EVENT_GLOBAL', JSON.stringify(eventData));
     } catch (e) {}
 
-    // 3. Firestore AL_Reward/_CONTROL_{PIN}_ (Cross-device Network ข้ามเครื่องแบบ Real-time)
+    // 3. Firestore AL_Reward/_CONTROL_{PIN}_ และ _CONTROL_GLOBAL_ (Cross-device Network ข้ามเครื่องแบบ Real-time)
     if (state.db) {
       try {
         const controlDocId = '_CONTROL_' + currentPin + '_';
-        await state.db.collection('AL_Reward').doc(controlDocId).set(eventData);
+        const writePromises = [
+          state.db.collection('AL_Reward').doc(controlDocId).set(eventData),
+          state.db.collection('AL_Reward').doc('_CONTROL_GLOBAL_').set(eventData),
+          state.db.collection('AL_Reward').doc('_CONTROL_LIVE_').set(eventData)
+        ];
+        // หากเคยตรวจพบหน้าจอเวทีใช้ PIN อื่น (เช่น AL2050) ให้ส่งไปยังห้องนั้นด้วย เพื่อให้ครอบคลุม 100%
+        if (state.detectedStagePin && state.detectedStagePin !== currentPin) {
+          writePromises.push(state.db.collection('AL_Reward').doc('_CONTROL_' + state.detectedStagePin + '_').set(eventData));
+        }
+        await Promise.allSettled(writePromises);
       } catch (err) {
         console.warn("Firestore live draw event broadcast error:", err);
       }
@@ -579,7 +594,12 @@
       if (emp) Object.assign(emp, w.data);
     });
 
-    // 3. บันทึกผลผู้โชคดีลงใน Firestore
+    // 3. รอให้อนิเมชั่นบนหน้าจอเวที (random.html) หมุนสุ่มและจุดพลุจนเสร็จก่อน
+    // เพื่อป้องกัน snapshot ของ AL_Employee ไม่ให้ไปแทรกแซงหรือทำให้ชื่อเด้งขึ้นมาก่อนอนิเมชั่น
+    const fastWaitMs = Math.min(Math.max(winnersToSave.length * 1500, 3000), 8000);
+    await new Promise(r => setTimeout(r, fastWaitMs));
+
+    // 4. บันทึกผลผู้โชคดีลงใน Firestore แบบ batch หลังอนิเมชั่นแสดงผลเสร็จสมบูรณ์
     if (state.db && winnersToSave.length > 0) {
       try {
         const batchPromises = winnersToSave.map(w => {
@@ -723,7 +743,11 @@
       if (emp) Object.assign(emp, w.data);
     });
 
-    // 3. บันทึกผลผู้โชคดีลงใน Firestore
+    // 3. รอให้อนิเมชั่นบนหน้าจอเวทีหมุนรูเล็ตแสดงผลผู้โชคดีทีละชิ้นพร้อมจุดพลุจนครบทุกสเต็ป
+    const rouletteWaitMs = Math.min(Math.max(totalDrawSteps * 2500 + 2000, 3500), 18000);
+    await new Promise(r => setTimeout(r, rouletteWaitMs));
+
+    // 4. บันทึกผลผู้โชคดีลงใน Firestore แบบ batch หลังอนิเมชั่นแสดงผลเสร็จสมบูรณ์
     if (state.db && winnersToSave.length > 0) {
       try {
         const batchPromises = winnersToSave.map(w => {
@@ -987,7 +1011,12 @@
     // 1. ส่งสัญญาณ Draw Event ของ Group Extra ไปยัง random.html ทันที
     await broadcastLiveDrawEvent(eventData);
 
-    // 2. บันทึกผลผู้ได้รับรางวัลลงใน Firestore แบบ batch
+    // 2. รอให้อนิเมชั่นบนหน้าจอเวที (random.html) หมุนรูเล็ต ประกาศชื่อผู้โชคดี และจุดพลุให้เสร็จสมบูรณ์ก่อน
+    // เพื่อป้องกัน snapshot ของ AL_Employee ไม่ให้ไปแทรกแซงหรือทำให้ชื่อเด้งขึ้นมาก่อนอนิเมชั่น
+    const extraWaitMs = qty > 1 ? (steps.length * 2800 + 1500) : 4800;
+    await new Promise(r => setTimeout(r, extraWaitMs));
+
+    // 3. บันทึกผลผู้ได้รับรางวัลลงใน Firestore แบบ batch หลังอนิเมชั่นแสดงผลเสร็จสมบูรณ์
     if (state.db && newlyDrawn.length > 0) {
       try {
         const batchPromises = newlyDrawn.map(w => {
@@ -1542,34 +1571,59 @@
     if (state.unsubscribeStageHeartbeat) {
       state.unsubscribeStageHeartbeat();
     }
+    if (state.unsubscribeGlobalStageHeartbeat) {
+      state.unsubscribeGlobalStageHeartbeat();
+    }
     const currentPin = String(state.roomPin || 'AL2026').trim().toUpperCase();
     const stageDocId = '_STAGE_ONLINE_' + currentPin + '_';
 
+    const updateStageIndicator = (data, fallbackPin) => {
+      const statusPill = document.getElementById('remoteStageStatus');
+      if (!statusPill) return false;
+
+      const isAlive = data && ((Date.now() - (data.lastActiveTime || 0)) < 16000);
+      if (isAlive) {
+        const livePin = String(data.roomPin || fallbackPin || currentPin).trim().toUpperCase();
+        state.detectedStagePin = livePin;
+        statusPill.className = 'status-pill';
+        statusPill.style.background = 'rgba(16, 185, 129, 0.18)';
+        statusPill.style.borderColor = 'rgba(16, 185, 129, 0.5)';
+        statusPill.style.color = '#34d399';
+        const syncNote = (livePin === currentPin) 
+          ? `(ห้อง ${currentPin} พร้อมสั่งงาน)` 
+          : `(เวทีห้อง ${livePin} - เชื่อมต่ออัตโนมัติ)`;
+        statusPill.innerHTML = `<span class="status-dot"></span><span>🖥️ หน้าจอเวทีออนไลน์ ${syncNote}</span>`;
+        return true;
+      }
+      return false;
+    };
+
     state.unsubscribeStageHeartbeat = state.db.collection('AL_Reward').doc(stageDocId)
       .onSnapshot((doc) => {
-        const statusPill = document.getElementById('remoteStageStatus');
-        if (!statusPill) return;
-
-        if (doc && doc.exists) {
-          const data = doc.data();
-          const isAlive = (Date.now() - (data.lastActiveTime || 0)) < 15000;
-          if (isAlive) {
-            statusPill.className = 'status-pill';
-            statusPill.style.background = 'rgba(16, 185, 129, 0.18)';
-            statusPill.style.borderColor = 'rgba(16, 185, 129, 0.5)';
-            statusPill.style.color = '#34d399';
-            statusPill.innerHTML = `<span class="status-dot"></span><span>🖥️ หน้าจอเวทีออนไลน์ (ห้อง ${currentPin})</span>`;
-            return;
+        const ok = doc && doc.exists && updateStageIndicator(doc.data(), currentPin);
+        if (!ok && !state.hasGlobalStageOnline) {
+          const statusPill = document.getElementById('remoteStageStatus');
+          if (statusPill) {
+            statusPill.className = 'status-pill offline';
+            statusPill.style.background = 'rgba(245, 158, 11, 0.18)';
+            statusPill.style.borderColor = 'rgba(245, 158, 11, 0.45)';
+            statusPill.style.color = '#fbbf24';
+            statusPill.innerHTML = `<span class="status-dot" style="background: #f59e0b; box-shadow: 0 0 8px #f59e0b;"></span><span>🖥️ รอหน้าจอ Random เชื่อมต่อห้อง ${currentPin}...</span>`;
           }
         }
-        statusPill.className = 'status-pill offline';
-        statusPill.style.background = 'rgba(245, 158, 11, 0.18)';
-        statusPill.style.borderColor = 'rgba(245, 158, 11, 0.45)';
-        statusPill.style.color = '#fbbf24';
-        statusPill.innerHTML = `<span class="status-dot" style="background: #f59e0b; box-shadow: 0 0 8px #f59e0b;"></span><span>🖥️ รอหน้าจอ Random เชื่อมต่อห้อง ${currentPin}...</span>`;
       }, (err) => {
         console.warn("Heartbeat listener warning:", err);
       });
+
+    state.unsubscribeGlobalStageHeartbeat = state.db.collection('AL_Reward').doc('_STAGE_ONLINE_GLOBAL_')
+      .onSnapshot((doc) => {
+        if (doc && doc.exists) {
+          const alive = updateStageIndicator(doc.data(), (doc.data() && doc.data().roomPin));
+          state.hasGlobalStageOnline = alive;
+        } else {
+          state.hasGlobalStageOnline = false;
+        }
+      }, () => {});
   }
 
   // ===========================================================================

@@ -54,6 +54,7 @@
     unsubscribeSnapshot: null,
     unsubscribeRewardsSnapshot: null,
     unsubscribeControlSnapshot: null,
+    unsubscribeGlobalControlSnapshot: null,
     activeView: 'reg',
     isRouletteRunning: false,
     latestWinnerId: null,
@@ -1530,6 +1531,7 @@
       // =========================================================================
       if (drawRouletteModal) {
         drawRouletteModal.style.display = 'flex';
+        drawRouletteModal.style.zIndex = '99999';
       }
 
       const rollDuration = steps.length > 3 ? 1200 : 1600;
@@ -1641,6 +1643,7 @@
 
       if (drawRouletteModal) {
         drawRouletteModal.style.display = 'flex';
+        drawRouletteModal.style.zIndex = '99999';
       }
       if (roulettePrizeBadge) {
         roulettePrizeBadge.textContent = `👑 ${data.rewardData.owner || 'ผู้บริหาร'} • สุ่มรางวัลพิเศษ`;
@@ -2508,22 +2511,28 @@
   async function handleIncomingDrawEvent(drawEvent) {
     if (!drawEvent || !drawEvent.eventId) return;
 
-    // ตรวจสอบ Room PIN ต้องตรงกันเพื่อป้องกันการสั่งการข้ามห้อง
-    const currentPin = String(state.roomPin || 'AL2026').trim().toUpperCase();
-    const eventPin = String(drawEvent.roomPin || 'AL2026').trim().toUpperCase();
-    if (eventPin !== currentPin) return;
-
     // ข้ามหากเป็นเครื่องที่เป็นผู้ส่งเอง
     if (drawEvent.senderClientId === state.clientId) return;
     // ข้ามหากได้รับและประมวลผลคำสั่งนี้ไปแล้ว
     if (drawEvent.eventId === state.lastHandledEventId) return;
 
+    // ตรวจสอบ Room PIN: หาก Event มาจากรีโมต และมี PIN ไม่ตรงกัน ให้ซิงค์ Room PIN อัตโนมัติ เพื่อให้คำสั่งทำงานทันที
+    const currentPin = String(state.roomPin || 'AL2026').trim().toUpperCase();
+    const eventPin = String(drawEvent.roomPin || '').trim().toUpperCase();
+    if (eventPin && eventPin !== currentPin && eventPin !== 'GLOBAL') {
+      state.roomPin = eventPin;
+      try { localStorage.setItem('AL_ROOM_PIN', eventPin); } catch (e) {}
+      updateRoomPinUI();
+    }
+
     state.lastHandledEventId = drawEvent.eventId;
+    state.isRouletteRunning = true; // ล็อคทันทีเพื่อป้องกัน AL_Employee snapshot แทรกแซง DOM ระหว่างการสุ่ม!
     unlockAudioContext();
 
     // จัดการสลับหน้าจอตามคำสั่งที่ได้รับ
     if (drawEvent.type === 'GROUP_SELECT' && (drawEvent.group === 'OVERVIEW' || drawEvent.group === 'MAIN')) {
-      showView('registration', false);
+      state.isRouletteRunning = false;
+      showView('reg', false);
       return;
     }
 
@@ -2532,12 +2541,12 @@
       state.isRouletteRunning = true;
       if (btnExecuteAllDraw) btnExecuteAllDraw.disabled = true;
       if (state.activeView !== 'draw') {
-        showView('draw');
+        showView('draw', false);
       }
       if (drawEvent.group) {
         window.goToDrawByGroup(drawEvent.group, false);
       }
-      await new Promise(r => setTimeout(r, 80));
+      await new Promise(r => setTimeout(r, 60));
 
       // แปลง boxes จาก FAST_DRAW เป็น steps เพื่อให้แสดง action การสุ่มเลือกเสมือนการสุ่มในเงื่อนไขการกดปุ่มสุ่มปกติ
       const steps = [];
@@ -2571,38 +2580,50 @@
       state.isRouletteRunning = true;
       if (btnExecuteAllDraw) btnExecuteAllDraw.disabled = true;
       if (state.activeView !== 'draw') {
-        showView('draw');
+        showView('draw', false);
       }
       if (drawEvent.group) {
         window.goToDrawByGroup(drawEvent.group, false);
       }
-      await new Promise(r => setTimeout(r, 80));
+      await new Promise(r => setTimeout(r, 60));
       await runRouletteDrawAnimation(drawEvent.steps, false);
     } else if (drawEvent.type === 'EXTRA_DRAW') {
       closeGrandDrawModal();
       state.isRouletteRunning = true;
+      state.isExtraDrawRunning = true;
       if (state.activeView !== 'draw') {
-        showView('draw');
+        showView('draw', false);
       }
       if (state.filterPrizeGroup !== 'Group Extra') {
-        window.goToDrawByGroup('Group Extra', false);
+        state.filterPrizeGroup = 'Group Extra';
       }
-      await new Promise(r => setTimeout(r, 80));
+      if (drawEvent.rewardId) {
+        state.selectedExtraRewardId = drawEvent.rewardId;
+      }
+      renderPrizesGrid();
+      renderDrawGroupsFilterBar();
+      await new Promise(r => setTimeout(r, 60));
       await runExtraDrawPlayback(drawEvent, false);
     } else if (drawEvent.type === 'EXTRA_RESET') {
+      state.isRouletteRunning = false;
       playbackFollowerExtraReset(drawEvent);
     } else if (drawEvent.type === 'GROUP_SELECT') {
-      if (!state.isRouletteRunning && drawEvent.group) {
+      state.isRouletteRunning = false;
+      if (drawEvent.group) {
         if (drawEvent.group === 'OVERVIEW' || drawEvent.group === 'MAIN') {
-          showView('registration', false);
+          showView('reg', false);
         } else {
           window.goToDrawByGroup(drawEvent.group, false);
         }
       }
     } else if (drawEvent.type === 'EXTRA_SELECT') {
-      if (!state.isRouletteRunning && drawEvent.rewardId) {
+      state.isRouletteRunning = false;
+      if (drawEvent.rewardId) {
         if (state.filterPrizeGroup !== 'Group Extra') {
-          window.goToDrawByGroup('Group Extra', false);
+          state.filterPrizeGroup = 'Group Extra';
+          showView('draw', false);
+          renderPrizesGrid();
+          renderDrawGroupsFilterBar();
         }
         state.selectedExtraRewardId = drawEvent.rewardId;
         renderGroupExtraStage();
@@ -2785,6 +2806,7 @@
 
     if (drawRouletteModal) {
       drawRouletteModal.style.display = 'flex';
+      drawRouletteModal.style.zIndex = '99999';
     }
 
     const rollDuration = totalDrawSteps > 6 ? 750 : 1100;
@@ -3453,6 +3475,8 @@
 
         const channelDef = new BroadcastChannel('AL_REALTIME_SYNC');
         channelDef.onmessage = handleMsg;
+        const channelGlob = new BroadcastChannel('AL_REALTIME_SYNC_GLOBAL');
+        channelGlob.onmessage = handleMsg;
 
         if (realtimeChannelWithPin) {
           try { realtimeChannelWithPin.close(); } catch (err) {}
@@ -3470,7 +3494,7 @@
 
     // 2. LocalStorage Storage Event (Local 0ms ข้ามแท็บ)
     window.addEventListener('storage', (e) => {
-      if (e.key && e.key.startsWith('AL_LAST_DRAW_EVENT_')) {
+      if (e.key && (e.key.startsWith('AL_LAST_DRAW_EVENT_') || e.key === 'AL_LAST_DRAW_EVENT_GLOBAL')) {
         try {
           const drawEvent = JSON.parse(e.newValue);
           if (drawEvent) handleIncomingDrawEvent(drawEvent);
@@ -3518,37 +3542,51 @@
     updateConnStatusUI(true, "Real-time Live (Local)");
   }
 
-  let isInitialControlSnapshot = true;
   function listenToLiveControlFirestore() {
     if (!state.db) return;
 
     if (state.unsubscribeControlSnapshot) {
       state.unsubscribeControlSnapshot();
     }
+    if (state.unsubscribeGlobalControlSnapshot) {
+      state.unsubscribeGlobalControlSnapshot();
+    }
 
     const currentPin = String(state.roomPin || 'AL2026').trim().toUpperCase();
     const controlDocId = '_CONTROL_' + currentPin + '_';
-    isInitialControlSnapshot = true;
 
+    const handleControlSnapshot = (doc) => {
+      if (!doc || !doc.exists) return;
+      const data = doc.data();
+      if (!data || !data.eventId) return;
+
+      // ไม่รันคำสั่งที่หน้านี้เป็นผู้ส่งเอง
+      if (data.senderClientId === state.clientId) return;
+      // ไม่รันซ้ำหากคำสั่งนี้รันไปแล้ว
+      if (data.eventId === state.lastHandledEventId) return;
+
+      // ตรวจสอบอายุของ Event: หากสร้างขึ้นภายใน 30 วินาทีที่ผ่านมา ถือเป็นคำสั่งสดใหม่ ให้รัน Action ทันที
+      const age = Date.now() - (data.timestamp || 0);
+      if (age < 30000) {
+        handleIncomingDrawEvent(data);
+      } else {
+        // หากเป็นคำสั่งเก่าค้างที่สร้างไว้นานแล้ว บันทึกไว้เพื่อไม่ให้รันย้อนหลัง
+        state.lastHandledEventId = data.eventId;
+      }
+    };
+
+    // 1. ฟังห้องระบุ PIN เฉพาะเจาะจง
     state.unsubscribeControlSnapshot = state.db.collection('AL_Reward')
       .doc(controlDocId)
-      .onSnapshot((doc) => {
-        if (doc && doc.exists) {
-          const data = doc.data();
-          if (isInitialControlSnapshot) {
-            isInitialControlSnapshot = false;
-            // บันทึก eventId ล่าสุดที่ค้างอยู่ใน Firestore เพื่อไม่ให้สุ่มซ้ำเมื่อเพิ่งโหลดหน้าเว็บ
-            if (data && data.eventId) {
-              state.lastHandledEventId = data.eventId;
-            }
-            return;
-          }
-          handleIncomingDrawEvent(data);
-        } else {
-          isInitialControlSnapshot = false;
-        }
-      }, (err) => {
+      .onSnapshot(handleControlSnapshot, (err) => {
         console.warn("Control firestore listener warning:", err);
+      });
+
+    // 2. ฟังห้องรวม GLOBAL สำหรับสั่งการข้ามเครื่องแบบไร้รอยต่อ ป้องกันปัญหา Room PIN ไม่ตรงกัน
+    state.unsubscribeGlobalControlSnapshot = state.db.collection('AL_Reward')
+      .doc('_CONTROL_GLOBAL_')
+      .onSnapshot(handleControlSnapshot, (err) => {
+        console.warn("Global control firestore listener warning:", err);
       });
   }
 
@@ -3560,7 +3598,7 @@
       try {
         const currentPin = String(state.roomPin || 'AL2026').trim().toUpperCase();
         const stageDocId = '_STAGE_ONLINE_' + currentPin + '_';
-        await state.db.collection('AL_Reward').doc(stageDocId).set({
+        const beatPayload = {
           roomPin: currentPin,
           isControlDoc: true,
           screen: 'random.html',
@@ -3568,7 +3606,11 @@
           activeView: state.activeView,
           filterPrizeGroup: state.filterPrizeGroup,
           clientId: state.clientId
-        });
+        };
+        await Promise.allSettled([
+          state.db.collection('AL_Reward').doc(stageDocId).set(beatPayload),
+          state.db.collection('AL_Reward').doc('_STAGE_ONLINE_GLOBAL_').set(beatPayload)
+        ]);
       } catch (e) {}
     };
 

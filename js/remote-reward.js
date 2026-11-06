@@ -506,114 +506,22 @@
     state.isProcessing = true;
     updateActionButtonsState();
 
-    // Shuffle eligible candidates (Fisher-Yates)
-    const pool = [...eligible];
-    for (let i = pool.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [pool[i], pool[j]] = [pool[j], pool[i]];
+    try {
+      // สั่งให้หน้าจอ random.html (เวที) เป็นผู้กดปุ่มเพื่อทำการสุ่มที่ฝั่ง random.html
+      await broadcastLiveDrawEvent({
+        type: 'REMOTE_TRIGGER_FAST_DRAW',
+        group: state.selectedGroup
+      });
+      showToast(`⚡ ส่งคำสั่งไปยังหน้าจอ Random ให้เริ่มทำการสุ่มแบบเร็ว (${currentGroup.group}) แล้ว!`);
+    } catch (err) {
+      console.warn("Trigger fast draw error:", err);
+      showToast("⚠️ ไม่สามารถส่งคำสั่งได้ กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      setTimeout(() => {
+        state.isProcessing = false;
+        updateActionButtonsState();
+      }, 2500);
     }
-
-    let poolIdx = 0;
-    const drawEventBoxes = [];
-    const winnersToSave = [];
-
-    for (let bIdx = 0; bIdx < prizeQuotas.length; bIdx++) {
-      const boxItem = prizeQuotas[bIdx];
-      if (boxItem.need <= 0) continue;
-      const boxWinners = [];
-
-      for (let k = 0; k < boxItem.need; k++) {
-        if (poolIdx >= pool.length) break;
-        const winnerCandidate = pool[poolIdx++];
-        const now = new Date();
-        const formattedTime = `${now.getFullYear() + 543}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-
-        const winnerPayload = {
-          candidate: {
-            EmployeeID: winnerCandidate.EmployeeID,
-            EmpName: winnerCandidate.EmpName,
-            Group: winnerCandidate.Group,
-            Branch: winnerCandidate.Branch,
-            id: winnerCandidate.id || String(winnerCandidate.EmployeeID)
-          },
-          reward: {
-            prizeName: boxItem.prizeName,
-            id: boxItem.reward.id || ('idx_' + boxItem.rewardIdx),
-            order: boxItem.order,
-            group: boxItem.reward.group || '',
-            owner: boxItem.reward.owner || '',
-            ownerPosition: boxItem.reward.ownerPosition || '',
-            ownerImage: boxItem.reward.ownerImage || '',
-            imageUrl: boxItem.reward.imageUrl || ''
-          },
-          time: formattedTime
-        };
-
-        boxWinners.push(winnerPayload);
-
-        winnersToSave.push({
-          docId: winnerCandidate.id || String(winnerCandidate.EmployeeID),
-          data: {
-            RewardName: boxItem.prizeName,
-            RewardId: boxItem.reward.id || ('idx_' + boxItem.rewardIdx),
-            RewardOrder: boxItem.order || 0,
-            RewardGroup: boxItem.reward.group || '',
-            RewardOwner: boxItem.reward.owner || '',
-            RewardExecutive: boxItem.reward.owner || '',
-            RewardPosition: boxItem.reward.ownerPosition || '',
-            RewardOwnerPosition: boxItem.reward.ownerPosition || '',
-            RewardOwnerImage: boxItem.reward.ownerImage || '',
-            RewardImageUrl: boxItem.reward.imageUrl || '',
-            RewardDrawTime: formattedTime,
-            RewardTime: formattedTime,
-            RewardStatus: 'ยังไม่ได้รับรางวัล'
-          }
-        });
-      }
-
-      if (boxWinners.length > 0) {
-        drawEventBoxes.push({
-          rewardIdx: boxItem.rewardIdx,
-          rewardId: boxItem.reward.id || ('idx_' + boxItem.rewardIdx),
-          need: boxItem.need,
-          winners: boxWinners
-        });
-      }
-    }
-
-    // 1. Broadcast draw event ไปยังทุกหน้าจอ random.html ทันที เพื่อให้ทุกเครื่องเริ่มเล่นอนิเมชั่นสุ่มรางวัลพร้อมกันทันที
-    await broadcastLiveDrawEvent({
-      type: 'FAST_DRAW',
-      group: state.selectedGroup,
-      boxes: drawEventBoxes
-    });
-
-    // 2. อัปเดตข้อมูลผู้โชคดีลงใน memory state บนหน้ารีโมต
-    winnersToSave.forEach(w => {
-      const emp = state.employees.find(e => (e.id || String(e.EmployeeID)) === w.docId);
-      if (emp) Object.assign(emp, w.data);
-    });
-
-    // 3. รอให้อนิเมชั่นบนหน้าจอเวที (random.html) หมุนสุ่มและจุดพลุจนเสร็จก่อน
-    // เพื่อป้องกัน snapshot ของ AL_Employee ไม่ให้ไปแทรกแซงหรือทำให้ชื่อเด้งขึ้นมาก่อนอนิเมชั่น
-    const fastWaitMs = Math.min(Math.max(winnersToSave.length * 1500, 3000), 8000);
-    await new Promise(r => setTimeout(r, fastWaitMs));
-
-    // 4. บันทึกผลผู้โชคดีลงใน Firestore แบบ batch หลังอนิเมชั่นแสดงผลเสร็จสมบูรณ์
-    if (state.db && winnersToSave.length > 0) {
-      try {
-        const batchPromises = winnersToSave.map(w => {
-          return state.db.collection(state.employeesCollection).doc(w.docId).set(w.data, { merge: true });
-        });
-        await Promise.allSettled(batchPromises);
-      } catch (err) {
-        console.warn("Firestore batch draw error:", err);
-      }
-    }
-
-    state.isProcessing = false;
-    updateActionButtonsState();
-    showToast(`⚡ สั่งสุ่มรางวัลแบบเร็วเรียบร้อยแล้ว (${winnersToSave.length} รางวัล)`);
   }
 
   // Roulette Draw trigger from remote
@@ -641,127 +549,25 @@
       return;
     }
 
-    const groupRewards = state.rewards.filter(r => (r.group || '') === state.selectedGroup);
-    groupRewards.sort(compareRewardGroups);
-
-    const drawQueue = [];
-    groupRewards.forEach((r, idx) => {
-      const totalQty = parseInt(r.quantity, 10) || 1;
-      const drawnCount = getDrawnCountForPrize(r);
-      const need = Math.max(0, totalQty - drawnCount);
-      for (let k = 0; k < need; k++) {
-        drawQueue.push({
-          reward: r,
-          rewardIdx: idx,
-          prizeName: r.name || `รางวัลที่ ${idx + 1}`,
-          order: r.order || (idx + 1),
-          imageUrl: r.imageUrl || '',
-          totalQty: totalQty
-        });
-      }
-    });
-
-    if (drawQueue.length === 0) {
-      showToast("⚠️ ของรางวัลในกลุ่มนี้ได้รับการสุ่มครบแล้ว");
-      return;
-    }
-
     state.isProcessing = true;
     updateActionButtonsState();
 
-    const pool = [...eligible];
-    for (let i = pool.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [pool[i], pool[j]] = [pool[j], pool[i]];
-    }
-
-    const totalDrawSteps = Math.min(drawQueue.length, pool.length);
-    const drawEventSteps = [];
-    const winnersToSave = [];
-
-    for (let stepIdx = 0; stepIdx < totalDrawSteps; stepIdx++) {
-      const currentItem = drawQueue[stepIdx];
-      const winnerCandidate = pool[stepIdx];
-      const now = new Date();
-      const formattedTime = `${now.getFullYear() + 543}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-
-      drawEventSteps.push({
-        stepIdx,
-        totalSteps: totalDrawSteps,
-        rewardIdx: currentItem.rewardIdx,
-        order: currentItem.order,
-        prizeName: currentItem.prizeName,
-        imageUrl: currentItem.imageUrl || '',
-        reward: {
-          id: currentItem.reward.id || ('idx_' + currentItem.rewardIdx),
-          group: currentItem.reward.group || '',
-          owner: currentItem.reward.owner || '',
-          ownerPosition: currentItem.reward.ownerPosition || '',
-          ownerImage: currentItem.reward.ownerImage || '',
-          imageUrl: currentItem.reward.imageUrl || ''
-        },
-        candidate: {
-          EmployeeID: winnerCandidate.EmployeeID,
-          EmpName: winnerCandidate.EmpName,
-          Group: winnerCandidate.Group,
-          Branch: winnerCandidate.Branch,
-          id: winnerCandidate.id || String(winnerCandidate.EmployeeID)
-        },
-        time: formattedTime
+    try {
+      // สั่งให้หน้าจอ random.html (เวที) เป็นผู้กดปุ่มเพื่อทำการสุ่มที่ฝั่ง random.html
+      await broadcastLiveDrawEvent({
+        type: 'REMOTE_TRIGGER_ROULETTE_DRAW',
+        group: state.selectedGroup
       });
-
-      winnersToSave.push({
-        docId: winnerCandidate.id || String(winnerCandidate.EmployeeID),
-        data: {
-          RewardName: currentItem.prizeName,
-          RewardId: currentItem.reward.id || ('idx_' + currentItem.rewardIdx),
-          RewardOrder: currentItem.order || 0,
-          RewardGroup: currentItem.reward.group || '',
-          RewardOwner: currentItem.reward.owner || '',
-          RewardExecutive: currentItem.reward.owner || '',
-          RewardPosition: currentItem.reward.ownerPosition || '',
-          RewardOwnerPosition: currentItem.reward.ownerPosition || '',
-          RewardOwnerImage: currentItem.reward.ownerImage || '',
-          RewardImageUrl: currentItem.reward.imageUrl || '',
-          RewardDrawTime: formattedTime,
-          RewardTime: formattedTime,
-          RewardStatus: 'ยังไม่ได้รับรางวัล'
-        }
-      });
+      showToast(`🎲 ส่งคำสั่งไปยังหน้าจอ Random ให้เริ่มหมุนรูเล็ตสุ่มรางวัล (${currentGroup.group}) แล้ว!`);
+    } catch (err) {
+      console.warn("Trigger roulette draw error:", err);
+      showToast("⚠️ ไม่สามารถส่งคำสั่งได้ กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      setTimeout(() => {
+        state.isProcessing = false;
+        updateActionButtonsState();
+      }, 2500);
     }
-
-    // 1. ส่งสัญญาณ Draw Event แบบรูเล็ตไปยัง random.html ทันที
-    await broadcastLiveDrawEvent({
-      type: 'ROULETTE_DRAW',
-      group: state.selectedGroup,
-      steps: drawEventSteps
-    });
-
-    // 2. อัปเดตข้อมูลผู้โชคดีลงใน memory state บนหน้ารีโมต
-    winnersToSave.forEach(w => {
-      const emp = state.employees.find(e => (e.id || String(e.EmployeeID)) === w.docId);
-      if (emp) Object.assign(emp, w.data);
-    });
-
-    // 3. รอให้อนิเมชั่นบนหน้าจอเวทีหมุนรูเล็ตแสดงผลผู้โชคดีทีละชิ้นพร้อมจุดพลุจนครบทุกสเต็ป
-    const rouletteWaitMs = Math.min(Math.max(totalDrawSteps * 2500 + 2000, 3500), 18000);
-    await new Promise(r => setTimeout(r, rouletteWaitMs));
-
-    // 4. บันทึกผลผู้โชคดีลงใน Firestore แบบ batch หลังอนิเมชั่นแสดงผลเสร็จสมบูรณ์
-    if (state.db && winnersToSave.length > 0) {
-      try {
-        const batchPromises = winnersToSave.map(w => {
-          return state.db.collection(state.employeesCollection).doc(w.docId).set(w.data, { merge: true });
-        });
-        await Promise.allSettled(batchPromises);
-      } catch (err) {
-        console.warn("Firestore batch draw error:", err);
-      }
-    }
-
-    state.isProcessing = false;
-    updateActionButtonsState();
-    showToast(`🎲 สั่งสุ่มรางวัลแบบรูเล็ตเรียบร้อยแล้ว (${totalDrawSteps} สเต็ป)`);
   }
 
   // ===========================================================================
@@ -915,142 +721,30 @@
 
     const selectedIndex = extraRewards.indexOf(reward);
     const execName = reward.owner || 'ผู้บริหาร';
+    const targetRewardId = reward.id || ('idx_' + selectedIndex);
 
     state.isProcessing = true;
     updateActionButtonsState();
 
-    // สุ่มสลับผู้มีสิทธิ์ (Fisher-Yates Shuffle)
-    const pool = [...eligible];
-    for (let i = pool.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [pool[i], pool[j]] = [pool[j], pool[i]];
-    }
-
-    // สุ่มให้ครบตามจำนวนของรางวัลที่ยังไม่ได้สุ่มเลือกในการกดครั้งเดียว
-    const canDrawCount = Math.min(remainingNeed, pool.length);
-    const steps = [];
-    const newlyDrawn = [];
-    const cleanName = (reward.name || 'รางวัลพิเศษ').trim();
-
-    for (let k = 0; k < canDrawCount; k++) {
-      const slotIdx = drawnCount + k;
-      const winnerCandidate = pool[k];
-      const now = new Date(Date.now() + (k * 1000));
-      const formattedTime = `${now.getFullYear() + 543}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-
-      steps.push({
-        slotIndex: slotIdx,
-        candidate: {
-          EmployeeID: winnerCandidate.EmployeeID,
-          EmpName: winnerCandidate.EmpName,
-          Group: winnerCandidate.Group,
-          Branch: winnerCandidate.Branch,
-          id: winnerCandidate.id || String(winnerCandidate.EmployeeID)
-        },
-        time: formattedTime
-      });
-
-      // อัปเดตข้อมูลผู้โชคดีลงใน memory state บนหน้ารีโมต
-      let empInState = state.employees.find(e => (e.id || String(e.EmployeeID)) === (winnerCandidate.id || String(winnerCandidate.EmployeeID)));
-      if (empInState) {
-        empInState.RewardName = cleanName;
-        empInState.RewardId = reward.id || ('idx_' + selectedIndex);
-        empInState.RewardGroup = 'Group Extra';
-        empInState.RewardOwner = reward.owner || '';
-        empInState.RewardExecutive = reward.owner || '';
-        empInState.RewardPosition = reward.ownerPosition || '';
-        empInState.RewardOwnerPosition = reward.ownerPosition || '';
-        empInState.RewardOwnerImage = reward.ownerImage || '';
-        empInState.RewardImageUrl = reward.imageUrl || '';
-        empInState.RewardDrawTime = formattedTime;
-        empInState.RewardTime = formattedTime;
-        empInState.RewardStatus = 'ยังไม่ได้รับรางวัล';
-        newlyDrawn.push(empInState);
-      } else {
-        const newEmp = {
-          ...winnerCandidate,
-          RewardName: cleanName,
-          RewardId: reward.id || ('idx_' + selectedIndex),
-          RewardGroup: 'Group Extra',
-          RewardOwner: reward.owner || '',
-          RewardExecutive: reward.owner || '',
-          RewardPosition: reward.ownerPosition || '',
-          RewardOwnerPosition: reward.ownerPosition || '',
-          RewardOwnerImage: reward.ownerImage || '',
-          RewardImageUrl: reward.imageUrl || '',
-          RewardDrawTime: formattedTime,
-          RewardTime: formattedTime,
-          RewardStatus: 'ยังไม่ได้รับรางวัล'
-        };
-        state.employees.push(newEmp);
-        newlyDrawn.push(newEmp);
-      }
-    }
-
-    const eventData = {
-      type: 'EXTRA_DRAW',
-      group: 'Group Extra',
-      selectedIndex: selectedIndex,
-      slotIndex: steps[0].slotIndex,
-      totalQty: qty,
-      rewardId: reward.id || ('idx_' + selectedIndex),
-      steps: steps,
-      winnerCandidate: steps[0].candidate,
-      rewardData: {
-        cleanName,
-        owner: reward.owner || '',
-        ownerPosition: reward.ownerPosition || '',
-        ownerImage: reward.ownerImage || '',
-        imageUrl: reward.imageUrl || '',
-        id: reward.id || ('idx_' + selectedIndex),
-        group: 'Group Extra'
-      },
-      formattedTime: steps[0].time
-    };
-
-    // 1. ส่งสัญญาณ Draw Event ของ Group Extra ไปยัง random.html ทันที
-    await broadcastLiveDrawEvent(eventData);
-
-    // 2. รอให้อนิเมชั่นบนหน้าจอเวที (random.html) หมุนรูเล็ต ประกาศชื่อผู้โชคดี และจุดพลุให้เสร็จสมบูรณ์ก่อน
-    // เพื่อป้องกัน snapshot ของ AL_Employee ไม่ให้ไปแทรกแซงหรือทำให้ชื่อเด้งขึ้นมาก่อนอนิเมชั่น
-    const extraWaitMs = qty > 1 ? (steps.length * 2800 + 1500) : 4800;
-    await new Promise(r => setTimeout(r, extraWaitMs));
-
-    // 3. บันทึกผลผู้ได้รับรางวัลลงใน Firestore แบบ batch หลังอนิเมชั่นแสดงผลเสร็จสมบูรณ์
-    if (state.db && newlyDrawn.length > 0) {
-      try {
-        const batchPromises = newlyDrawn.map(w => {
-          const docId = w.id || String(w.EmployeeID);
-          return state.db.collection(state.employeesCollection).doc(docId).set({
-            RewardName: cleanName,
-            RewardId: reward.id || ('idx_' + selectedIndex),
-            RewardGroup: 'Group Extra',
-            RewardOwner: reward.owner || '',
-            RewardExecutive: reward.owner || '',
-            RewardPosition: reward.ownerPosition || '',
-            RewardOwnerPosition: reward.ownerPosition || '',
-            RewardOwnerImage: reward.ownerImage || '',
-            RewardImageUrl: reward.imageUrl || '',
-            RewardDrawTime: w.RewardDrawTime,
-            RewardTime: w.RewardTime,
-            RewardStatus: 'ยังไม่ได้รับรางวัล'
-          }, { merge: true });
-        });
-        await Promise.allSettled(batchPromises);
-      } catch (err) {
-        console.warn("Firestore save extra winner error:", err);
-      }
-    }
-
-    // 3. บันทึกลง localStorage
     try {
-      localStorage.setItem('AL_EMPLOYEES_DATA', JSON.stringify(state.employees));
-    } catch (e) {}
-
-    state.isProcessing = false;
-    updateActionButtonsState();
-    renderActiveGroupPanel();
-    showToast(`🎯 สั่งสุ่มรางวัลของ ${execName} ครบ ${canDrawCount} รางวัลเรียบร้อยแล้ว!`);
+      // สั่งให้หน้าจอ random.html (เวที) เป็นผู้กดปุ่มสุ่มรายการที่ฝั่ง random.html
+      // เพื่อให้ฝั่ง random.html แสดงผล action การสุ่ม รูเล็ต จุดพลุ และเสียงเต็มรูปแบบ
+      await broadcastLiveDrawEvent({
+        type: 'REMOTE_TRIGGER_EXTRA_DRAW',
+        group: 'Group Extra',
+        rewardId: targetRewardId,
+        selectedIndex: selectedIndex
+      });
+      showToast(`🎯 ส่งคำสั่งไปยังหน้าจอ Random ให้เริ่มทำการสุ่มรางวัลของ ${execName} แล้ว!`);
+    } catch (err) {
+      console.warn("Trigger extra draw error:", err);
+      showToast("⚠️ ไม่สามารถส่งคำสั่งได้ กรุณาลองใหม่อีกครั้ง");
+    } finally {
+      setTimeout(() => {
+        state.isProcessing = false;
+        updateActionButtonsState();
+      }, 2500);
+    }
   }
 
   // Group Extra Redraw Confirmation Modal
@@ -1152,6 +846,12 @@
     const clearedWinnerIds = winners.map(w => w.EmployeeID);
 
     // Broadcast reset event to all random screens
+    await broadcastLiveDrawEvent({
+      type: 'REMOTE_TRIGGER_EXTRA_REDRAW',
+      group: 'Group Extra',
+      rewardId: rewardId,
+      clearedWinnerIds: clearedWinnerIds
+    });
     await broadcastLiveDrawEvent({
       type: 'EXTRA_RESET',
       group: 'Group Extra',

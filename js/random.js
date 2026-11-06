@@ -504,11 +504,54 @@
 
   setTimeout(checkAndPromptAudioUnlock, 600);
 
+  // Floating Non-blocking Stage Toast for random.html
+  function showStageToast(message, duration = 3500) {
+    let toast = document.getElementById('stageToastNotification');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'stageToastNotification';
+      toast.style.cssText = `
+        position: fixed;
+        top: 24px;
+        left: 50%;
+        transform: translateX(-50%) translateY(-20px);
+        background: rgba(15, 23, 42, 0.95);
+        color: #f8fafc;
+        padding: 12px 24px;
+        border-radius: 9999px;
+        font-size: 15px;
+        font-weight: 600;
+        box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5), 0 0 0 1px rgba(245, 158, 11, 0.5);
+        z-index: 100000;
+        pointer-events: none;
+        opacity: 0;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        backdrop-filter: blur(8px);
+      `;
+      document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateX(-50%) translateY(0)';
+
+    if (showStageToast._timer) clearTimeout(showStageToast._timer);
+    showStageToast._timer = setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(-50%) translateY(-20px)';
+    }, duration);
+  }
+
   // เสียง Tick กลไกขณะตัวเลขหรือรายชื่อกำลังหมุนสุ่ม
   function playTickSound() {
     try {
       const ctx = getCelebrationAudioContext();
-      if (!ctx || ctx.state !== 'running') return;
+      if (!ctx) return;
+      if (ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'triangle';
@@ -1819,12 +1862,18 @@
     if (state.isExtraDrawRunning || state.isRouletteRunning) return;
 
     const extraRewards = getGroupExtraRewards();
-    let reward = extraRewards.find(r => r.id === rewardId);
+    if (!extraRewards || extraRewards.length === 0) return;
+
+    const targetId = rewardId || state.selectedExtraRewardId || extraRewards[0].id || 'idx_0';
+    let reward = extraRewards.find(r => r.id === targetId);
     if (!reward) {
-      const idx = parseInt(String(rewardId).replace('idx_', ''), 10);
+      const idx = parseInt(String(targetId).replace('idx_', ''), 10);
       if (!isNaN(idx) && extraRewards[idx]) {
         reward = extraRewards[idx];
       }
+    }
+    if (!reward) {
+      reward = extraRewards[0];
     }
     if (!reward) return;
 
@@ -1836,13 +1885,13 @@
     const remainingNeed = totalQty - drawnCount;
 
     if (remainingNeed <= 0) {
-      alert("ของรางวัลของผู้บริหารท่านนี้ได้รับการสุ่มครบจำนวนแล้ว");
+      showStageToast("⚠️ ของรางวัลของผู้บริหารท่านนี้ได้รับการสุ่มครบจำนวนแล้ว");
       return;
     }
 
     const eligible = getEligibleCandidates();
     if (eligible.length === 0) {
-      alert("ไม่มีรายชื่อผู้มีสิทธิ์ลุ้นรางวัลที่พร้อมทำการสุ่มในขณะนี้");
+      showStageToast("⚠️ ไม่มีรายชื่อผู้มีสิทธิ์ลุ้นรางวัลที่พร้อมทำการสุ่มในขณะนี้");
       return;
     }
 
@@ -2526,19 +2575,134 @@
     }
 
     state.lastHandledEventId = drawEvent.eventId;
-    state.isRouletteRunning = true; // ล็อคทันทีเพื่อป้องกัน AL_Employee snapshot แทรกแซง DOM ระหว่างการสุ่ม!
     unlockAudioContext();
 
-    // จัดการสลับหน้าจอตามคำสั่งที่ได้รับ
+    // =========================================================================
+    // 1. คำสั่งจาก Remote Controller สั่งให้หน้าจอ random.html เป็นผู้กดปุ่มสุ่มเอง
+    // (เสมือนการกดปุ่มสุ่มที่หน้าจอ random.html เอง 100% เพื่อให้แสดง Action รูเล็ต พลุ และเสียง)
+    // =========================================================================
+    if (drawEvent.type === 'REMOTE_TRIGGER_EXTRA_DRAW') {
+      if (state.isRouletteRunning || state.isExtraDrawRunning) {
+        console.warn("Ignored REMOTE_TRIGGER_EXTRA_DRAW because draw is already running");
+        return;
+      }
+      closeGrandDrawModal();
+      if (state.activeView !== 'draw') {
+        showView('draw', false);
+      }
+      state.filterPrizeGroup = 'Group Extra';
+      const targetRewardId = drawEvent.rewardId || state.selectedExtraRewardId;
+      if (targetRewardId) {
+        state.selectedExtraRewardId = targetRewardId;
+      }
+      renderPrizesGrid();
+      renderDrawGroupsFilterBar();
+      unlockAudioContext();
+      await new Promise(r => setTimeout(r, 80));
+      await window.executeExtraPrizeDraw(targetRewardId);
+      return;
+    }
+
+    if (drawEvent.type === 'REMOTE_TRIGGER_FAST_DRAW') {
+      if (state.isRouletteRunning || state.isExtraDrawRunning) {
+        console.warn("Ignored REMOTE_TRIGGER_FAST_DRAW because draw is already running");
+        return;
+      }
+      closeGrandDrawModal();
+      if (state.activeView !== 'draw') {
+        showView('draw', false);
+      }
+      if (drawEvent.group) {
+        window.goToDrawByGroup(drawEvent.group, false);
+      }
+      state.drawMode = 'fast';
+      unlockAudioContext();
+      await new Promise(r => setTimeout(r, 80));
+      await executeGrandDrawAll();
+      return;
+    }
+
+    if (drawEvent.type === 'REMOTE_TRIGGER_ROULETTE_DRAW') {
+      if (state.isRouletteRunning || state.isExtraDrawRunning) {
+        console.warn("Ignored REMOTE_TRIGGER_ROULETTE_DRAW because draw is already running");
+        return;
+      }
+      closeGrandDrawModal();
+      if (state.activeView !== 'draw') {
+        showView('draw', false);
+      }
+      if (drawEvent.group) {
+        window.goToDrawByGroup(drawEvent.group, false);
+      }
+      state.drawMode = 'normal';
+      unlockAudioContext();
+      await new Promise(r => setTimeout(r, 80));
+      await executeGrandDrawAll();
+      return;
+    }
+
+    if (drawEvent.type === 'REMOTE_TRIGGER_EXTRA_REDRAW') {
+      if (state.isRouletteRunning || state.isExtraDrawRunning) return;
+      closeGrandDrawModal();
+      if (state.activeView !== 'draw') {
+        showView('draw', false);
+      }
+      state.filterPrizeGroup = 'Group Extra';
+      if (drawEvent.rewardId) {
+        state.selectedExtraRewardId = drawEvent.rewardId;
+      }
+      renderPrizesGrid();
+      renderDrawGroupsFilterBar();
+      pendingRedrawRewardId = state.selectedExtraRewardId;
+      await window.executeConfirmedRedraw();
+      return;
+    }
+
+    // =========================================================================
+    // 2. คำสั่งสลับหน้าจอ (Navigation & Selection)
+    // =========================================================================
     if (drawEvent.type === 'GROUP_SELECT' && (drawEvent.group === 'OVERVIEW' || drawEvent.group === 'MAIN')) {
       state.isRouletteRunning = false;
       showView('reg', false);
       return;
     }
 
+    if (drawEvent.type === 'GROUP_SELECT') {
+      state.isRouletteRunning = false;
+      if (drawEvent.group) {
+        window.goToDrawByGroup(drawEvent.group, false);
+      }
+      return;
+    }
+
+    if (drawEvent.type === 'EXTRA_SELECT') {
+      state.isRouletteRunning = false;
+      if (drawEvent.rewardId) {
+        if (state.filterPrizeGroup !== 'Group Extra') {
+          state.filterPrizeGroup = 'Group Extra';
+          showView('draw', false);
+          renderPrizesGrid();
+          renderDrawGroupsFilterBar();
+        }
+        state.selectedExtraRewardId = drawEvent.rewardId;
+        renderGroupExtraStage();
+      }
+      return;
+    }
+
+    if (drawEvent.type === 'EXTRA_RESET') {
+      state.isRouletteRunning = false;
+      playbackFollowerExtraReset(drawEvent);
+      return;
+    }
+
+    // =========================================================================
+    // 3. Follower / Spectator Playback (สำหรับหน้าจอสำรองที่รับชมภาพตามเครื่องหลัก)
+    // =========================================================================
+    state.isRouletteRunning = true; // ล็อคทันทีเพื่อป้องกัน AL_Employee snapshot แทรกแซง DOM ระหว่างการสุ่มสำหรับ spectator!
+
     if (drawEvent.type === 'FAST_DRAW') {
       closeGrandDrawModal();
-      state.isRouletteRunning = true;
       if (btnExecuteAllDraw) btnExecuteAllDraw.disabled = true;
       if (state.activeView !== 'draw') {
         showView('draw', false);
@@ -2577,7 +2741,6 @@
       }
     } else if (drawEvent.type === 'ROULETTE_DRAW') {
       closeGrandDrawModal();
-      state.isRouletteRunning = true;
       if (btnExecuteAllDraw) btnExecuteAllDraw.disabled = true;
       if (state.activeView !== 'draw') {
         showView('draw', false);
@@ -2589,7 +2752,6 @@
       await runRouletteDrawAnimation(drawEvent.steps, false);
     } else if (drawEvent.type === 'EXTRA_DRAW') {
       closeGrandDrawModal();
-      state.isRouletteRunning = true;
       state.isExtraDrawRunning = true;
       if (state.activeView !== 'draw') {
         showView('draw', false);
@@ -2604,30 +2766,6 @@
       renderDrawGroupsFilterBar();
       await new Promise(r => setTimeout(r, 60));
       await runExtraDrawPlayback(drawEvent, false);
-    } else if (drawEvent.type === 'EXTRA_RESET') {
-      state.isRouletteRunning = false;
-      playbackFollowerExtraReset(drawEvent);
-    } else if (drawEvent.type === 'GROUP_SELECT') {
-      state.isRouletteRunning = false;
-      if (drawEvent.group) {
-        if (drawEvent.group === 'OVERVIEW' || drawEvent.group === 'MAIN') {
-          showView('reg', false);
-        } else {
-          window.goToDrawByGroup(drawEvent.group, false);
-        }
-      }
-    } else if (drawEvent.type === 'EXTRA_SELECT') {
-      state.isRouletteRunning = false;
-      if (drawEvent.rewardId) {
-        if (state.filterPrizeGroup !== 'Group Extra') {
-          state.filterPrizeGroup = 'Group Extra';
-          showView('draw', false);
-          renderPrizesGrid();
-          renderDrawGroupsFilterBar();
-        }
-        state.selectedExtraRewardId = drawEvent.rewardId;
-        renderGroupExtraStage();
-      }
     }
   }
 
@@ -2976,12 +3114,12 @@
     });
 
     if (totalNeeded === 0) {
-      alert("✅ สุ่มครบทุกรางวัล และครบทุกจำนวนของรางวัลที่มีทั้งหมดเรียบร้อยแล้ว!");
+      showStageToast("✅ สุ่มครบทุกรางวัล และครบทุกจำนวนของรางวัลที่มีทั้งหมดเรียบร้อยแล้ว!");
       return;
     }
 
     if (eligible.length === 0) {
-      alert("⚠️ ไม่มีผู้มีสิทธิ์ลุ้นรางวัลที่ยังไม่ได้รับรางวัลในระบบ\n\nเงื่อนไข: ผู้มีสิทธิ์ต้องลงทะเบียนเข้าร่วมกิจกรรมแล้ว, มีชื่อพนักงาน (ฟิลด์ EmpName ไม่เป็น - หรือค่าว่าง หรือค่า null) และยังไม่เคยได้รับรางวัล");
+      showStageToast("⚠️ ไม่มีผู้มีสิทธิ์ลุ้นรางวัลที่ยังไม่ได้รับรางวัลในระบบ (เงื่อนไข: ลงทะเบียนแล้ว, มีชื่อพนักงาน และยังไม่เคยได้รับรางวัล)");
       return;
     }
 
